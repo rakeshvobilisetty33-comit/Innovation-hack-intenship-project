@@ -1,8 +1,8 @@
 import type { Activity, Project, Task, User } from "@/lib/types";
 
-// Phase 1 mock data. This is the frontend's source of truth until Phase 6
-// swaps the data store internals to fetch from the REST API.
-// Field shapes are identical to the upcoming Prisma models.
+// Phase 1 mock data. Now superseded by the real MongoDB API (src/services/* + src/store/*),
+// but kept as the fallback shape reference and for the seed script's content source.
+// Field shapes are identical to the Mongoose models.
 
 export const demoUser: User = {
   id: "user_demo_1",

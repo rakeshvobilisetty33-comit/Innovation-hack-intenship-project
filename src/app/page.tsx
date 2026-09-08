@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { useAuthStore } from "@/store/auth-store";
+import { useDataStore } from "@/store/data-store";
 import { useUIStore } from "@/store/ui-store";
 import { Logo } from "@/components/common/logo";
 
@@ -20,11 +21,42 @@ import NotFoundView from "@/pages/not-found-view";
 
 export default function Home() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authHydrated = useAuthStore((s) => s.hydrated);
   const view = useUIStore((s) => s.view);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  if (!mounted) {
+  // One-shot session hydration on app mount: validate the persisted JWT
+  // against /api/auth/me and, if still valid, pull the user's workspace
+  // (projects/tasks/activities/users) from the REST API.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const auth = useAuthStore.getState();
+      if (!auth.hydrated) {
+        await auth.hydrate();
+      }
+      if (cancelled) return;
+      if (useAuthStore.getState().isAuthenticated) {
+        await useDataStore.getState().hydrate();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // When the user logs in (auth state flips from false → true), pull the
+  // workspace data. Skips if already hydrated (e.g. on session restore).
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    const data = useDataStore.getState();
+    if (!data.hydrated && !data.loading) {
+      void data.hydrate();
+    }
+  }, [isAuthenticated]);
+
+  if (!mounted || !authHydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Logo size={36} />

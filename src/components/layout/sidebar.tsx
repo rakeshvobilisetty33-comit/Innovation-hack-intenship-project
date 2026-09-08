@@ -23,6 +23,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const view = useUIStore((s) => s.view);
   const setView = useUIStore((s) => s.setView);
   const stats = useDataStore((s) => s.stats);
+  // Subscribe to the underlying arrays so the count badges re-render after
+  // async hydrate / mutations (the `stats` function reference is stable).
+  useDataStore((s) => s.projects);
+  useDataStore((s) => s.tasks);
 
   const items: { id: ViewId; label: string; icon: LucideIcon; count?: number }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },

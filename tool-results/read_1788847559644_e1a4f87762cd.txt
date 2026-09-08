@@ -1,0 +1,716 @@
+     1→# DevFlow AI — Build Worklog
+     2→
+     3→This file is the shared worklog for all agents building the DevFlow AI platform.
+     4→Each agent MUST read this file before starting work and MUST append a new section
+     5→after finishing (do NOT overwrite). Sections are separated by `---`.
+     6→
+     7→## Project Context
+     8→
+     9→DevFlow AI — Developer Project & Task Management Platform (SaaS-style).
+    10→
+    11→**Environment constraints (IMPORTANT):**
+    12→- Next.js 16 App Router, TypeScript 5, Tailwind CSS 4, shadcn/ui (New York), single `/` route only.
+    13→- Backend = Next.js Route Handlers under `/api/*` (not a separate Express server).
+    14→- Database = Prisma + SQLite (equivalent to MongoDB+Mongoose models, same field names).
+    15→- AI = `z-ai-web-dev-sdk` behind an abstracted service (key via env).
+    16→- Already installed: framer-motion, recharts, zustand, @tanstack/react-query, dnd-kit, next-themes, zod, lucide-react.
+    17→
+    18→**Phased plan (user requested):**
+    19→- Phase 1: project structure + frontend foundation (frontend-first, mock data) ← CURRENT
+    20→- Phase 2: complete responsive dashboard UI
+    21→- Phase 3: authentication UI (polish)
+    22→- Phase 4: REST API (Route Handlers + JWT + validation + error handling)
+    23→- Phase 5: Prisma models + integration (User, Project, Task, Activity)
+    24→- Phase 6: connect frontend to backend (TanStack Query)
+    25→- Phase 7: auth + protected routes (real)
+    26→- Phase 8: project/task CRUD (real)
+    27→- Phase 9: search/filter/statistics/activity
+    28→- Phase 10: AI task generation (z-ai-web-dev-sdk)
+    29→- Phase 11: animations, polish, responsive
+    30→- Phase 12: testing/bug fixing
+    31→- Phase 13: production config
+    32→- Phase 14: README + docs
+    33→- Phase 15: deployment prep
+    34→
+    35→## Phase 1 — Plan & Task Ownership
+    36→
+    37→- **1-a (orchestrator, me):** Foundation. Theme/brand, fonts, ThemeProvider, layout.tsx,
+    38→  `src/lib/{types,constants,mock-data}`, `src/store/{auth,ui,data}`, common components
+    39→  (logo, theme-toggle, page-transition, empty-state, error-state, confirm-dialog,
+    40→  animated-counter), layout (app-shell, sidebar, topbar, mobile-nav, user-menu),
+    41→  auth-shell (logged-out), root view router in `src/app/page.tsx`, `src/services/api.ts` stub.
+    42→- **1-b (subagent):** Auth views — `src/pages/auth/LoginView.tsx`, `src/pages/auth/RegisterView.tsx`
+    43→  + `src/components/auth/*`. Mock-auth wired to `useAuthStore`.
+    44→- **1-c (subagent):** Dashboard — `src/pages/dashboard/DashboardView.tsx` + `src/components/dashboard/*`
+    45→  (StatsCard, ProgressCard, RecentActivity, ProjectOverview, TaskOverview) + Recharts.
+    46→- **1-d (subagent):** Projects — `src/pages/projects/ProjectsView.tsx`, `src/pages/projects/ProjectDetailsView.tsx`
+    47→  + `src/components/projects/*` (ProjectCard, ProjectForm, ProjectDetails).
+    48→- **1-e (subagent):** Tasks — `src/pages/tasks/TasksView.tsx` + `src/components/tasks/*`
+    49→  (TaskCard, TaskForm, TaskFilters, TaskList, TaskStatusBadge, PriorityBadge, KanbanBoard).
+    50→- **1-f (subagent):** Profile/Settings/NotFound — `src/pages/profile/ProfileView.tsx`,
+    51→  `src/pages/settings/SettingsView.tsx`, `src/pages/NotFoundView.tsx`.
+    52→- **1-verify (orchestrator):** lint, fix, Agent Browser verification, worklog.
+    53→
+    54→---
+    55→Task ID: 0
+    56→Agent: orchestrator
+    57→Task: Initialize worklog and Phase 1 plan.
+    58→
+    59→Work Log:
+    60→- Inspected existing Next.js 16 scaffold (layout.tsx, page.tsx, globals.css, prisma schema, package.json).
+    61→- Confirmed all required deps already installed (framer-motion, recharts, zustand, dnd-kit, next-themes, zod, z-ai-web-dev-sdk, prisma).
+    62→- Defined Phase 1 task ownership and the shared API contract below.
+    63→
+    64→Stage Summary:
+    65→- Worklog + Phase 1 plan established.
+    66→- Ready to build foundation (1-a).
+    67→
+    68→---
+    69→Task ID: 1-a
+    70→Agent: orchestrator
+    71→Task: Build Phase 1 foundation — theme/brand, fonts, ThemeProvider, layout.tsx, lib (types/constants/mock-data), stores (auth/ui/data), common components, app shell (sidebar/topbar/mobile-nav/user-menu), auth-shell stub, root view router (page.tsx), services/api stub, and stub view files so the app compiles.
+    72→
+    73→Work Log:
+    74→- Rewrote `src/app/globals.css` with emerald brand tokens (light + dark), custom scrollbar, grid/dots/gradient utilities, recharts tooltip theming, and prefers-reduced-motion guard.
+    75→- Added `src/components/theme/theme-provider.tsx` (next-themes, attribute=class, defaultTheme=dark, enableSystem).
+    76→- Updated `src/app/layout.tsx`: Geist fonts, DevFlow metadata/viewport, wrapped children in ThemeProvider, added Sonner toaster alongside radix Toaster.
+    77→- Created `src/lib/types.ts` (User, Project, Task, Activity, DashboardStats, ApiResponse).
+    78→- Created `src/lib/constants.ts` (PROJECT_STATUSES, TASK_STATUSES, PRIORITIES with label+badge+dot classes, CHART_COLORS, formatDate/formatRelative/isOverdue).
+    79→- Created `src/lib/mock-data.ts` (demoUser, teamMembers, 6 projects, 14 tasks, 7 activities — shapes identical to upcoming Prisma models).
+    80→- Created `src/store/auth-store.ts` (zustand+persist mock auth: login/register/logout/updateProfile; persists user+token only). Demo login: alex@devflow.ai / password.
+    81→- Created `src/store/ui-store.ts` (view router: dashboard/projects/project-details/tasks/profile/settings/not-found; selectedProjectId; sidebarOpen; commandOpen; openProject).
+    82→- Created `src/store/data-store.ts` (in-memory mock CRUD: addProject/updateProject/deleteProject/tasksForProject/addTask/updateTask/setTaskStatus/deleteTask/stats/logActivity).
+    83→- Created `src/services/api.ts` (apiFetch + api verbs + token storage; relative paths; NEXT_PUBLIC_API_URL).
+    84→- Created common components: `logo.tsx`, `theme-toggle.tsx`, `page-transition.tsx` (PageTransition/FadeIn/AnimateList), `animated-counter.tsx`, `empty-state.tsx`, `error-state.tsx`, `confirm-dialog.tsx`.
+    85→- Created layout: `sidebar.tsx`, `topbar.tsx`, `mobile-nav.tsx` (Sheet drawer), `user-menu.tsx` (dropdown), `app-shell.tsx`.
+    86→- Created stub view files (to be replaced by subagents 1-b..1-f):
+    87→  `src/components/auth/auth-shell.tsx`, `src/pages/auth/{login,register}-view.tsx`,
+    88→  `src/pages/dashboard/dashboard-view.tsx`, `src/pages/projects/{projects,project-details}-view.tsx`,
+    89→  `src/pages/tasks/tasks-view.tsx`, `src/pages/profile/profile-view.tsx`, `src/pages/settings/settings-view.tsx`,
+    90→  `src/pages/not-found-view.tsx`.
+    91→- Wrote `src/app/page.tsx` root router: mounted guard → AuthShell (logged out) or AppShell + AnimatePresence view switching (logged in).
+    92→- Verified dev server returns 200 with no compile errors.
+    93→
+    94→Stage Summary:
+    95→- Foundation complete and compiling. Dev server healthy on :3000.
+    96→- Established the shared API contract below — ALL subagents MUST build against it.
+    97→
+    98→================== SHARED API CONTRACT (binding for all subagents) ==================
+    99→
+   100→DESIGN TOKENS (Tailwind classes available):
+   101→- Brand accent = emerald. Use `bg-brand`, `text-brand`, `border-brand`, `text-brand-foreground`, `bg-brand/10`, `ring-brand`.
+   102→- shadcn tokens: bg-background, bg-card, bg-muted, text-muted-foreground, border-border, text-foreground, bg-primary/primary-foreground (= brand).
+   103→- Utilities: `.bg-grid`, `.bg-dots`, `.text-gradient-brand`, `.glass`, `.shadow-soft`, `.shadow-brand`, `.scrollbar-thin`.
+   104→- NO indigo/blue as primary. Sky is allowed only for the "in-progress" task status badge (already defined).
+   105→
+   106→IMPORTS:
+   107→- `cn` from `@/lib/utils`.
+   108→- shadcn components from `@/components/ui/*` (all standard ones exist: button, input, label, card, dialog, sheet, dropdown-menu, select, badge, progress, avatar, tabs, table, checkbox, tooltip, popover, command, alert-dialog, switch, scroll-area, separator, skeleton, textarea, toast/toaster, sonner).
+   109→- Hooks: `@/hooks/use-toast` exports `useToast()` returning `{ toast }`. `@/hooks/use-mobile` exists.
+   110→
+   111→TYPES (`@/lib/types.ts`): User, Project, Task, Activity, ProjectStatus, TaskStatus, Priority, DashboardStats, ApiResponse<T>.
+   112→
+   113→CONSTANTS (`@/lib/constants.ts`):
+   114→- PROJECT_STATUSES[status] = {label, badge, dot}
+   115→- TASK_STATUSES[status] = {label, badge, dot}
+   116→- PRIORITIES[priority] = {label, badge, dot, weight}
+   117→- PROJECT_STATUS_LIST, TASK_STATUS_LIST, PRIORITY_LIST, CHART_COLORS
+   118→- formatDate(iso), formatRelative(iso), isOverdue(dueDate, status)
+   119→
+   120→STORES:
+   121→- `useAuthStore` (@/store/auth-store): { user, token, isAuthenticated, status, error, login(email,password), register(name,email,password), logout(), updateProfile(patch), clearError() }
+   122→- `useUIStore` (@/store/ui-store): { view, selectedProjectId, sidebarOpen, commandOpen, setView(view), openProject(id), setSidebarOpen, toggleSidebar, setCommandOpen, goBack() }. ViewId = 'dashboard'|'projects'|'project-details'|'tasks'|'profile'|'settings'|'not-found'.
+   123→- `useDataStore` (@/store/data-store): { projects, tasks, activities, hydrated, addProject(input,ownerName?), updateProject(id,patch), deleteProject(id), getProject(id), tasksForProject(projectId), addTask(input,assignedName?,projectName?), updateTask(id,patch), setTaskStatus(id,status), deleteTask(id), stats() -> DashboardStats, logActivity(a) }. ProjectInput = {name, description, status?, progress?}. TaskInput = {title, description?, project, assignedTo?, status?, priority?, dueDate?}.
+   124→
+   125→COMMON COMPONENTS (`@/components/common/*`):
+   126→- `Logo({className?, showWordmark?, size?})` — brand logo.
+   127→- `ThemeToggle({className?})` — light/dark switch.
+   128→- `PageTransition({children,className?})`, `FadeIn({children,delay?,className?})`, `AnimateList({children})`.
+   129→- `AnimatedCounter({value, duration?, suffix?, prefix?, className?})` — count-up number.
+   130→- `EmptyState({icon?, title, description?, action?, className?})`.
+   131→- `ErrorState({title?, message?, onRetry?, className?})`.
+   132→- `ConfirmDialog({open, onOpenChange, title, description?, confirmLabel?, cancelLabel?, destructive?, onConfirm})`.
+   133→
+   134→LAYOUT (`@/components/layout/*`): AppShell, Sidebar, Topbar, MobileNav, UserMenu — already built; views render INSIDE AppShell main.
+   135→
+   136→VIEW FILE CONTRACT (subagents MUST use these exact paths + default exports):
+   137→- `src/components/auth/auth-shell.tsx` -> named export `AuthShell` (logged-out shell; manages login/register toggle internally).
+   138→- `src/pages/auth/login-view.tsx` -> default export LoginView.
+   139→- `src/pages/auth/register-view.tsx` -> default export RegisterView.
+   140→- `src/pages/dashboard/dashboard-view.tsx` -> default export DashboardView.
+   141→- `src/pages/projects/projects-view.tsx` -> default export ProjectsView.
+   142→- `src/pages/projects/project-details-view.tsx` -> default export ProjectDetailsView.
+   143→- `src/pages/tasks/tasks-view.tsx` -> default export TasksView.
+   144→- `src/pages/profile/profile-view.tsx` -> default export ProfileView.
+   145→- `src/pages/settings/settings-view.tsx` -> default export SettingsView.
+   146→- `src/pages/not-found-view.tsx` -> default export NotFoundView.
+   147→
+   148→SUPPORTING COMPONENT FOLDERS (subagents own these; create as needed):
+   149→- `src/components/auth/*` (1-b)
+   150→- `src/components/dashboard/*` (1-c)
+   151→- `src/components/projects/*` (1-d)
+   152→- `src/components/tasks/*` (1-e)
+   153→- `src/components/profile/*`, `src/components/settings/*` (1-f)
+   154→
+   155→RESPONSIVE RULES (mandatory): mobile-first; sidebar becomes drawer (already handled); cards stack on mobile; tables -> responsive cards on mobile; modals fit screen; buttons ≥44px touch targets; charts resize (ResponsiveContainer).
+   156→STICKY FOOTER: where a footer is used, wrap root in `min-h-screen flex flex-col` and footer `mt-auto`.
+   157→ANIMATIONS: framer-motion, subtle, respect prefers-reduced-motion (already globally guarded).
+   158→TOASTS: `const { toast } = useToast()` then `toast({ title, description, variant? })` (variant: 'default'|'destructive'|'success'). For success use a green styling or just default.
+   159→A11Y: semantic HTML, aria-labels on icon buttons, labels for inputs, keyboard accessible.
+   160→
+   161→All subagents: after finishing, append a `---` section to /home/z/my-project/worklog.md with Task ID, Agent, Task, Work Log, Stage Summary.
+   162→
+   163→---
+   164→Task ID: 1-f
+   165→Agent: subagent (Profile / Settings / NotFound)
+   166→Task: Build Profile, Settings and NotFound views — frontend only, mock data via existing Zustand stores.
+   167→
+   168→Work Log:
+   169→- Created `src/components/profile/profile-header.tsx` — `ProfileHeader` (named) + `getInitials`. Gradient banner, 96px Avatar (initials fallback + ring), name/email, role badge, "Member since {formatDate}", inline Edit/Save/Cancel form (name/email/role/bio w/ 280-char counter/optional avatar URL). Validation: name ≥ 2 chars, valid email; cancel reverts.
+   170→- Created `src/pages/profile/profile-view.tsx` — `ProfileView` (default). Reads `useAuthStore.user`, `useDataStore.{projects,tasks,activities}`, `useToast`. Stats grid (sm:2 / xl:4) with `AnimatedCounter`: Projects owned (match `owner === user.id` OR `ownerName === user.name`), Tasks assigned, Completed (assigned + done), Completion rate %. About card with bio (placeholder if empty) + role/ID badges. Recent activity card: user's latest 6 activities, per-action icon, `formatRelative` time. Framer-motion entrance.
+   171→- Created `src/components/settings/appearance-settings.tsx` — `AppearanceSettings` (named). Light/Dark/System option cards (active ring + check icon + mini preview swatch) using `useTheme()`. Mounted guard to avoid hydration mismatch. Brand accent swatch row labelled "Brand accent — emerald". Radiogroup semantics for a11y.
+   172→- Created `src/pages/settings/settings-view.tsx` — `SettingsView` (default). shadcn `Tabs` (vertical nav on lg, horizontal scroll on mobile). Sections: Appearance (renders `AppearanceSettings`), Profile (short card → `useUIStore.setView('profile')`), Notifications (5 `Switch`es — email, push, in-app, weekly digest, task reminders — persisted via an inlined `useLocalStorage` hook; toast "Preferences saved" on change), Account (read-only email display, change-password form with show/hide + validation, danger zone with destructive `ConfirmDialog` → `logout()` + toast "Account deleted (demo)"). `useToast` for every action.
+   173→- Overwrote `src/pages/not-found-view.tsx` — `NotFoundView` (default). Polished 404: min-h-[70vh], dotted backdrop, Lucide `Compass` in a brand-tinted circle with a pulsing accent dot, big "404" with `text-gradient-brand`, headline "This page drifted off the roadmap.", "Back to dashboard" (`setView('dashboard')`) + "Report an issue" (toast). Framer-motion fade + slight y.
+   174→
+   175→Stage Summary:
+   176→- All 5 owned files created/overwritten per the contract; default/named exports correct.
+   177→- Lint clean on my owned files (verified via targeted `eslint` run on the 5 files). Project-wide lint reports 1 error + 1 warning in 1-a-owned files (user-menu.tsx, auth-mode-tabs.tsx) — NOT introduced by me; left untouched.
+   178→- `tail -80 dev.log` after edits: only successful "Compiled in Xms" + "GET / 200" lines, no compile errors from my code.
+   179→- Theme switching actually changes the theme (uses `next-themes` `setTheme`); profile save updates `useAuthStore` user; account delete calls `logout()`.
+   180→- All interactive files start with `'use client'`; brand = emerald throughout (no indigo/blue); a11y labels/keyboard/aria in place; framer-motion subtle and reduced-motion-guarded.
+   181→
+   182→---
+   183→Task ID: 1-c
+   184→Agent: full-stack-developer (subagent)
+   185→Task: Build the Dashboard view (`src/pages/dashboard/dashboard-view.tsx`) plus 5 dashboard components (`StatsCard`, `ProgressCard`, `RecentActivity`, `ProjectOverview`, `TaskOverview`) — frontend only, mock data via existing Zustand stores, recharts for analytics, framer-motion for subtle animation.
+   186→
+   187→Work Log:
+   188→- Read the SHARED API CONTRACT in worklog.md, then inspected `@/lib/{types,constants,mock-data}`, the three Zustand stores (`useDataStore`, `useAuthStore`, `useUIStore`), and common components (`AnimatedCounter`, `EmptyState`, `badges`, `PageTransition`).
+   189→- Created `src/components/dashboard/stats-card.tsx` (named `StatsCard`): tinted icon square per accent (brand/neutral/success/warning), `AnimatedCounter` value, optional trend (up/down arrow + text) or caption, hover-lift via `motion.div whileHover={{y:-2}}`.
+   190→- Created `src/components/dashboard/progress-card.tsx` (named `ProgressCard`): SVG radial ring (size 144, stroke 12) with a brand→chart-2 linear gradient; `motion.circle` animates `strokeDashoffset` from full circumference to target on mount; center label shows animated overall %; 2×2 grid of `Metric` tiles for completion rate / pending / overdue / done (each with `AnimatedCounter`). Container has `role="img"` + `aria-label`.
+   191→- Created `src/components/dashboard/recent-activity.tsx` (named `RecentActivity`): scrollable list (`max-h-[420px] overflow-y-auto scrollbar-thin`), each row has avatar (initials), bold userName, muted description, relative time via `formatRelative`, and a 2px left-border accent colored by activity verb (created→brand, completed→emerald, updated→slate, moved→amber, generated→violet, deleted→red). Stagger-in motion per item. Optional `onViewAll` footer.
+   192→- Created `src/components/dashboard/project-overview.tsx` (named `ProjectOverview`): top N projects sorted by `updatedAt` desc; each row is a `button` calling `onOpenProject(id)`; shows `ProjectStatusBadge`, `Progress` bar with %, stacked member avatars (max 4 + "+N" overflow), task count derived via `useDataStore.tasksForProject(id).length`, and `formatDate(updatedAt)`. Header has "View all" button → `onViewAll`.
+   193→- Created `src/components/dashboard/task-overview.tsx` (named `TaskOverview`): two recharts charts in a `md:grid-cols-2` panel.
+   194→  - Tasks by Status: `PieChart` with `Pie` (innerRadius 56 / outerRadius 84, paddingAngle 2), one `Cell` per status using OKLCH colors that match the badge dots (todo→slate, in-progress→sky, done→`var(--brand)`); custom center overlay shows total task count; custom legend below.
+   195→  - Tasks by Priority: `BarChart` (vertical bars) with rounded tops, one colored `Cell` per priority (low→slate, medium→sky, high→amber, urgent→red), X axis = labels, Y axis = integer ticks; custom legend below.
+   196→  - Shared custom `ChartTooltip` styled with `recharts-default-tooltip` + `bg-popover/border-border/shadow-soft`, showing count + percent of total.
+   197→  - Each chart container is `h-[220px]` with `role="img"` + descriptive `aria-label` listing all segment values. Empty-state handled when `tasks.length === 0`.
+   198→- Replaced `src/pages/dashboard/dashboard-view.tsx` with the full implementation (default export `DashboardView`):
+   199→  - Reads `useAuthStore.user`, `useDataStore.{projects,tasks,activities,stats}`, `useUIStore.{openProject,setView}`, `useToast`.
+   200→  - Greeting header: time-of-day greeting + firstName + 👋 + today's date (`<time>`) + subtitle; subtle framer-motion fade-in.
+   201→  - 500ms mount loading state renders `DashboardSkeleton` (Skeleton cards mirroring the real layout).
+   202→  - Layout (mobile-first):
+   203→    - Row 1 — `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4`: 4 `StatsCard`s (Total Projects / Active Projects / Total Tasks / Completed Tasks) using lucide `FolderKanban`/`Activity`/`ListChecks`/`CheckCheck`. Trends computed from real mock timestamps (`+N this week` from `createdAt`/`updatedAt` in last 7 days).
+   204→    - Row 2 — `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4`: `ProgressCard` (`xl:col-span-2`) + inline `QuickActions` card (New Project → setView('projects'), View Tasks → setView('tasks'), AI Generate → toast).
+   205→    - Row 3 — `grid-cols-1 lg:grid-cols-3 gap-4`: `TaskOverview` (`lg:col-span-2`) + `RecentActivity` (`lg:col-span-1`, "View all" → toast).
+   206→    - Row 4 — full-width `ProjectOverview` (top 5 projects by updatedAt) → "View all" → setView('projects'), row click → openProject(id).
+   207→  - Empty state: if `projects.length === 0 && tasks.length === 0`, renders `EmptyState` with a "Create your first project" CTA → setView('projects').
+   208→- Verified all imports resolve (no missing exports from stores/lib/common).
+   209→- Ran `bun run lint` — only pre-existing error in `src/components/layout/user-menu.tsx` (not owned by 1-c; left untouched). All 6 dashboard files pass lint cleanly.
+   210→- Dev server returns HTTP 200 on `/` and `dev.log` shows `✓ Compiled` with no compile errors after writing all files.
+   211→
+   212→Stage Summary:
+   213→- 6 files created/overwritten, all owned exclusively by 1-c:
+   214→  - `src/components/dashboard/stats-card.tsx`
+   215→  - `src/components/dashboard/progress-card.tsx`
+   216→  - `src/components/dashboard/recent-activity.tsx`
+   217→  - `src/components/dashboard/project-overview.tsx`
+   218→  - `src/components/dashboard/task-overview.tsx`
+   219→  - `src/pages/dashboard/dashboard-view.tsx`
+   220→- Dashboard renders with real mock data from `useDataStore` (no fake stats); numbers count up via `AnimatedCounter`; charts render and resize via `ResponsiveContainer`; subtle framer-motion animations respect prefers-reduced-motion (global guard in `globals.css`).
+   221→- Accessible: semantic `<header>/<section>` + `<ul>/<li>` lists, `role="img"` + `aria-label` on every chart/ring, `aria-label` on icon buttons and project rows, keyboard-focusable buttons.
+   222→- Brand = emerald throughout; no indigo/blue as primary/accent. Sky used only for the in-progress status / medium priority to match the shared badge conventions.
+   223→- Dev server healthy on :3000, no compile errors introduced.
+   224→
+   225→---
+   226→Task ID: 1-b
+   227→Agent: full-stack-developer
+   228→Task: Build AuthShell, LoginView, RegisterView for the logged-out experience.
+   229→
+   230→Work Log:
+   231→- Read the shared API contract in worklog.md and inspected existing foundation (auth-store, logo, theme-toggle, button/input/label/checkbox/card, toast hook, mock-data) to ensure exact import paths and design tokens.
+   232→- Created `src/components/auth/brand-panel.tsx` with two named exports: `BrandPanel` (left marketing panel — animated gradient base + .bg-grid overlay + two pulsing brand/chart-2 glows + ThemeToggle pinned top-right + Logo(40) + headline with `.text-gradient-brand` + supporting paragraph + 3 Lucide feature bullets (FolderKanban/ListChecks/Sparkles) + faux mini dashboard card with 3 stat chips and 2 animated progress bars + trusted-by stat row) and `MobileBrandHeader` (compact logo + tagline + "Free during beta" shown above the auth card on mobile).
+   233→- Created `src/components/auth/auth-mode-tabs.tsx` exporting `AuthModeTabs` (segmented pill toggle, role=tablist/tab, aria-selected, framer-motion `layoutId="auth-mode-pill"` sliding background, spring stiffness 420/damping 32) and the `AuthMode` type.
+   234→- Rewrote `src/components/auth/auth-shell.tsx` (named export `AuthShell`): full-viewport `min-h-screen` `lg:grid lg:grid-cols-[1.05fr_minmax(0,1fr)]` shell, holds internal `mode` state (`'login'|'register'`), renders `<BrandPanel>` (hidden below lg) + a centered right column (`max-w-[440px]`) containing the compact brand header on mobile + a glass/`bg-card`/`shadow-soft`/rounded-2xl/border card with `<AuthModeTabs>` on top, `<AnimatePresence mode="wait">` swapping `LoginView`/`RegisterView` (220ms fade+slide y=6), and the "By continuing you agree to the Terms & Privacy." footer line.
+   235→- Rewrote `src/pages/auth/login-view.tsx` (default export `LoginView`, optional `onSwitchToRegister` prop): email + password fields with leading Mail/Lock icons, password show/hide (Eye/EyeOff) button with aria-label/aria-pressed, "Remember me" Checkbox, "Forgot password?" text button (toast "Coming soon"), full-width `bg-brand` submit button with Loader2 spinner state, zod validation (`z.string().email` + non-empty password), inline `aria-invalid`/`aria-describedby` errors, demo credentials hint box ("alex@devflow.ai / password") with "Use demo" autofill button, and "Don't have an account? Create one" switch link. On success: success toast (`Welcome back` + user.name). On failure: inline form error + destructive toast.
+   236→- Rewrote `src/pages/auth/register-view.tsx` (default export `RegisterView`, optional `onSwitchToLogin` prop): Full name + Email + Password + Confirm password + Terms checkbox. zod schema with min-length 2/valid-email/min-6-password/confirm-match/`z.literal(true)` for terms, `.refine()` for password match. Show/hide on both password + confirm fields. Visual-only 4-segment password strength meter (Too short → Strong) using brand/chart-2/chart-3/destructive tones. Full-width `bg-brand` submit button with ShieldCheck icon + ArrowRight + Loader2 spinner. Inline a11y errors. On success: success toast (`Account created` / `Welcome to DevFlow AI`). On email-exists failure: inline + destructive toast. "Already have an account? Sign in" link calls onSwitchToLogin.
+   237→- Verified dev server returns 200 OK and the dev.log shows only "✓ Compiled" messages with no errors/warnings after the rewrite.
+   238→- Ran `bun run lint`: my files (auth-shell, brand-panel, auth-mode-tabs, login-view, register-view) produce zero warnings/errors. Initial `aria-pressed` warning on the tab role was fixed by removing the redundant attribute (kept `aria-selected`, which is the correct one for role=tab). The single remaining lint error is in `src/components/layout/user-menu.tsx` (React Compiler memoization), owned by 1-a — left untouched per ownership rules.
+   239→
+   240→Stage Summary:
+   241→- Files created/changed:
+   242→  - `src/components/auth/brand-panel.tsx` (new — BrandPanel + MobileBrandHeader named exports)
+   243→  - `src/components/auth/auth-mode-tabs.tsx` (new — AuthModeTabs named export + AuthMode type)
+   244→  - `src/components/auth/auth-shell.tsx` (replaced stub — AuthShell named export)
+   245→  - `src/pages/auth/login-view.tsx` (replaced stub — LoginView default export)
+   246→  - `src/pages/auth/register-view.tsx` (replaced stub — RegisterView default export)
+   247→- Login/register switching works via a single `mode` state owned by `AuthShell`. It is updated by BOTH the segmented `AuthModeTabs` at the top of the card (framer-motion `layoutId` slides the pill background) AND the in-form text links — LoginView calls `onSwitchToRegister` ("Create one") and RegisterView calls `onSwitchToLogin` ("Sign in"). AuthShell passes the setter as both props. The `<AnimatePresence mode="wait">` swaps the two views with a 220ms fade + 6px y translate. Both surfaces stay perfectly in sync because they share one source of truth.
+   248→- Mock auth wired to `useAuthStore.login` / `useAuthStore.register` (550ms / 700ms simulated latency already in the store). Demo credentials: alex@devflow.ai / password. Success toasts use the standard toast; failures use `variant: "destructive"`.
+   249→- Notes for the orchestrator:
+   250→  - AuthShell already accounts for the demo login case where the persisted store could be authenticated on first paint — page.tsx handles that gate. No changes to page.tsx were needed.
+   251→  - The auth card uses `glass` + `bg-card/85` + `shadow-soft` + `rounded-2xl` + `border border-border` — all from the shared token set.
+   252→  - Brand accent is emerald throughout (no indigo/blue). chart-2 (teal-ish) is only used for the "design system" progress bar and one ambient glow on the brand panel, matching the existing CHART_COLORS.
+   253→  - Single remaining lint error (`user-menu.tsx` React Compiler memoization) belongs to task 1-a — should be resolved in 1-verify.
+   254→
+   255→---
+   256→Task ID: 1-e
+   257→Agent: subagent (tasks page + components)
+   258→Task: Build the Tasks page (`src/pages/tasks/tasks-view.tsx`) and supporting components (`src/components/tasks/*`: TaskCard, TaskForm, TaskFilters, TaskList, KanbanBoard) using existing Zustand stores (no backend, no API routes, no Prisma).
+   259→
+   260→Work Log:
+   261→- Inspected the shared worklog + API contract, lib/types, lib/constants, lib/mock-data, store/{data,ui,auth}-store, existing common components (badges, empty-state, confirm-dialog), shadcn primitives (dialog, select, dropdown-menu, popover, tabs, avatar, badge, skeleton, scroll-area), and globals.css for brand tokens (emerald). Confirmed `@dnd-kit/core`, `@dnd-kit/utilities` already installed.
+   262→- Built `TaskFilters` (`src/components/tasks/task-filters.tsx`):
+   263→  - Props `{ filters, setFilters, className }`. Filters: `status?`, `priority?`, `project?` (id), `assignedTo?` (name substring), `search?` (lives in parent toolbar).
+   264→  - Desktop (`md+`): inline shadcn `Select`s for status/priority/project + an `Input` for assignee; "Clear" button when any filter is active.
+   265→  - Mobile (`<md`): the same controls collapsed behind a "Filters" `Popover` (button + active-count `Badge`).
+   266→  - Uses `TASK_STATUS_LIST`, `PRIORITY_LIST`, `PRIORITIES`, `TASK_STATUSES`, `useDataStore.projects`. All selects use `"all"` sentinel → empty string conversion. A11y: labelled `SelectTrigger`/`Input`.
+   267→- Built `TaskCard` (`src/components/tasks/task-card.tsx`):
+   268→  - Layout: priority-colored left accent strip + Card body. Title (1-line truncate), clickable project-name chip → `onOpenProject`, 2-line clamped description, badge row (interactive `TaskStatusBadge` wrapped in a `DropdownMenu` to change status inline; `PriorityBadge` similarly interactive when `onPriorityChange` is provided), footer (avatar initials + name, due date with `formatDate`, red when `isOverdue`). `DropdownMenu` (MoreHorizontal) with Edit / Delete.
+   269→  - Framer-motion entrance/exit; hover lift + border highlight.
+   270→  - Drag-and-drop integration via optional `dragRef`, `dragStyle`, `dragHandleProps` props (so the wrapper carries the dnd-kit ref + transform while a visible `GripVertical` button on the card carries the dnd-kit listeners/attributes — avoids nested interactive elements on the wrapper). `variant="overlay"` for the `DragOverlay` preview (rotated + shadow-brand).
+   271→  - All interactive controls keyboard-accessible; icon button has `aria-label`; status/priority dropdowns announce current + target value.
+   272→- Built `TaskForm` (`src/components/tasks/task-form.tsx`):
+   273→  - Renders its own `Dialog` (`open` controlled internally as `true` while mounted; `onOpenChange(false)` → `onCancel`). Mount/unmount driven by parent.
+   274→  - Fields: Title (Input, required, min 2, inline error), Description (Textarea), Project (Select from `useDataStore.projects`, required), Assigned to (Input defaulting to current `useAuthStore.user.name`), Status (Select), Priority (Select), Due date (native `<input type="date">`, local-time conversion to/from ISO).
+   275→  - All fields have accessible `<Label htmlFor>` (required ones marked). Submit disabled when title < 2 chars or no projects exist.
+   276→- Built `TaskList` (`src/components/tasks/task-list.tsx`):
+   277→  - Responsive grid: `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`. Each card wrapped in a `motion.div` with `AnimatePresence` (initial/animate/exit + `layout` for smooth filter reorder). Forwards `onEdit` / `onDelete` / `onOpenProject` / `onStatusChange` / `onPriorityChange` to `TaskCard` bound to each task.
+   278→- Built `KanbanBoard` (`src/components/tasks/kanban-board.tsx`):
+   279→  - Real `@dnd-kit/core` cross-column drag-and-drop (NOT the dropdown fallback). `DndContext` with `PointerSensor` (distance: 6 — allows clicks on the card's inner dropdowns/menus to pass through) + `KeyboardSensor` (focus the grip handle, Space to start, arrows to move, Space/Enter to drop). Collision detection = `closestCorners`.
+   280→  - 3 columns (To Do / In Progress / Done) generated from `TASK_STATUS_LIST`. Each column header: dot + label + count `Badge`. Column body is a `useDroppable` area (`id = "col-<status>"`) with `isOver` highlight (`bg-brand/5 ring-2 ring-brand/40`). Responsive: `grid-cols-1 md:grid-cols-3`; each column `max-h-[60vh] md:max-h-[calc(100vh-280px)]` with `overflow-y-auto scrollbar-thin`. Empty column shows a "Drop tasks here" dashed placeholder.
+   281→  - Cards are `useDraggable` (id = task id, data carries task + status). On `DragEnd` over a different column → `onStatusChange(id, newStatus)` + parent toasts.
+   282→  - `DragOverlay` renders an inert `TaskCard` (`variant="overlay"`) with the active task; original card gets `opacity-50` + `ring-2 ring-brand`.
+   283→  - **Fixed a bug found in agent-browser verification**: original implementation spread `{...props}` to every column, which made every column render all tasks. Now each column filters `tasks.filter((t) => t.status === status)`. Verified counts match (e.g., To Do 6 / In Progress 4 / Done 4 = 14).
+   284→  - A11y fallback (required by spec): the inline `TaskStatusBadge` dropdown on each card still lets users move a task between statuses without dragging (keyboard + pointer). Drag is the primary path; dropdown is the fallback.
+   285→- Built `TasksView` (`src/pages/tasks/tasks-view.tsx`):
+   286→  - Reads `useDataStore` (tasks, projects, addTask, updateTask, setTaskStatus, deleteTask), `useUIStore` (openProject), `useToast`. Local state: view mode (persisted to `localStorage` under `devflow-tasks-view`), filters, loading (≈500ms simulated mount), form-open + editing task, deleting task.
+   287→  - Sub-toolbar: search `Input` (filters title/description case-insensitive), `TaskFilters` (inline desktop, popover mobile), active-filter chips with dismiss X + "Clear filters", "New Task" primary `Button`, and a `Tabs` segmented control for List / Board (a second full-width `Tabs` is rendered on `<sm` screens so the toggle is reachable on mobile).
+   288→  - Filtering: combines `status`, `priority`, `project` (id), `assignedTo` (matches against `assignedName` or `assignedTo`), and `search` (title + description). Results sorted by priority weight (desc) then due date asc. Count chip shows "N tasks match" or "N tasks".
+   289→  - Renders `TaskList` or `KanbanBoard` based on toggle. New/Edit dialogs mount/unmount `<TaskForm initial?>…` — submit calls `addTask` (create) or `updateTask` (edit) and toasts success. Delete opens `<ConfirmDialog destructive>` → `deleteTask` + destructive toast.
+   290→  - Loading skeleton (~500ms) tailored to list vs board layout. Empty state: "No tasks yet" (with New Task CTA) when there are no tasks at all, or "No tasks match your filters" (with Clear filters CTA) when filtered to zero. Uses the shared `EmptyState`.
+   291→  - All actions go through the store; no `fetch`/`axios`, no API routes, no Prisma. Strictly frontend.
+   292→- Agent-browser verification (real Next.js compile via the running :3000 dev server):
+   293→  - Logged in via "Use demo" → navigated to Tasks. Verified the list view renders all 14 mock tasks with correct priority order and interactive status/priority dropdowns.
+   294→  - Switched to Board view: confirmed 3 columns (To Do 6 / In Progress 4 / Done 4) with status-appropriate tasks in each (post-bug-fix).
+   295→  - Drag-and-drop: simulated a manual pointer drag (mouse-down on the "Push notifications" grip → 4 intermediate moves → mouse-up over the In Progress column). The task moved To Do → In Progress and the column counts updated (5/5/4). The store was updated and a "Status updated" toast appeared. Real dnd-kit cross-column drag works.
+   296→  - Inline status dropdown: opened the badge dropdown on a To-Do task, picked "Set status to In Progress", confirmed the task moved columns (4/6/4).
+   297→  - Search: typed "drag" → narrowed to the "Kanban drag & drop" task only; other columns showed "Drop tasks here". Cleared search.
+   298→  - Create flow: clicked "New Task", filled the title, clicked "Create task" — task appeared in the To Do column and a "Task created" toast rendered.
+   299→  - Delete flow: opened the More menu, picked Delete, confirmed in `ConfirmDialog` — task removed and column count dropped.
+   300→  - Empty state: typed a non-matching query → empty state "No tasks match your filters" appeared.
+   301→  - Mobile viewport (390×844): the toolbar collapses correctly — Filters move into a "Filters" Popover (button shows active filter count badge), the view toggle is full width, the board columns stack vertically, all controls still usable.
+   302→- Final dev-log + lint check: `tail -40 dev.log` shows clean "✓ Compiled" entries and successful `GET / 200`s; no runtime errors. `bun run lint` reports a single error in `src/components/layout/user-menu.tsx` (pre-existing, owned by 1-a — `react-hooks/preserve-manual-memoization` on a `useMemo` whose deps use `user?.name` vs inferred `user.name`). I did not touch that file. My new task files introduce no lint or TypeScript errors (`tsc --noEmit` for `src/components/tasks/*` and `src/pages/tasks/*` is clean).
+   303→
+   304→Stage Summary:
+   305→- Tasks feature complete and verified working in-browser via agent-browser: real dnd-kit cross-column drag-and-drop (not the dropdown fallback), inline status/priority dropdowns (also serve as the keyboard/pointer accessibility fallback), search + multi-filter with active-filter chips, list/board view toggle, create/edit/delete flows, loading + empty states, mobile-first responsive layout with mobile filter popover.
+   306→- Dev server still healthy on :3000. No new lint/tsc errors introduced by this task.
+   307→
+   308→---
+   309→Task ID: 1-d
+   310→Agent: subagent (projects)
+   311→Task: Build the frontend Projects pages & components for Phase 1 — ProjectsView, ProjectDetailsView, ProjectCard, ProjectForm.
+   312→
+   313→Work Log:
+   314→- Read worklog + SHARED API CONTRACT (binding). Inspected existing types, constants, stores (data/ui/auth), common components (badges, empty-state, confirm-dialog), shadcn UI primitives (dialog, select, dropdown-menu, slider, progress, avatar, card, badge, skeleton, scroll-area, label, input, textarea, button), layout (app-shell, topbar), mock-data (projects, tasks, activities), and the existing stub view files.
+   315→- Created `src/components/projects/project-form.tsx` (named export `ProjectForm`): form rendered inside a parent-provided Dialog; fields = Name (Input, min 2, required, aria-invalid feedback), Description (Textarea, max 280 with live counter), Status (Select from PROJECT_STATUS_LIST with colored dot), Progress (Slider 0–100 with live %). Submit label adapts (Create / Save changes). Inline validation; submit disabled when invalid. Parent fires success toast. `ProjectInput` imported from `@/store/data-store` (NOT @/lib/types, which doesn't export it).
+   316→- Created `src/components/projects/project-card.tsx` (named export `ProjectCard`): props `{project, onOpen, onEdit, onDelete, taskCount}`. Whole card clickable (role="button", tabIndex=0, Enter/Space). DropdownMenu (MoreHorizontal trigger, stops propagation) with Edit + destructive Delete items. ProjectStatusBadge from `@/components/common/badges`. 2-line description clamp. Progress bar + %. Footer = members avatar stack (deterministic tone per name, overlapping with -space-x-2, +N overflow, max 4 visible) + task count + formatRelative(updatedAt). Hover lift via motion `whileHover={{y:-3}}` + hover ring + shadow-soft.
+   317→- Overwrote `src/pages/projects/projects-view.tsx` (default export `ProjectsView`): sub-toolbar with New project button + search Input (instant filter by name/description) + status Select (PROJECT_STATUS_LIST + All) + AI ghost button (toast only). Active filter chips with AnimatePresence height animation, removable Badges + "Clear filters" link. Responsive grid `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4` with AnimatePresence mode="popLayout" + layout cards. Skeleton grid for ~500ms on mount. EmptyState (FolderKanban) with contextual copy + CTA. Create dialog (ProjectForm) → addProject(values, user.name) + toast. Edit dialog with DECOUPLED open/project state (editProject stays mounted during Dialog exit animation; cleared via useEffect 280ms after close). Delete via ConfirmDialog (destructive) → deleteProject + destructive toast.
+   318→- Overwrote `src/pages/projects/project-details-view.tsx` (default export `ProjectDetailsView`): if no selectedProjectId or project missing → EmptyState (FolderKanban + "Back to projects" → setView('projects')). Header card: back button (ArrowLeft → goBack), h1 name + ProjectStatusBadge + description, Edit + Delete buttons. Stats strip (`grid sm:grid-cols-2 xl:grid-cols-4`) = Total / Completed (good tone) / Pending / Overdue (warn tone when >0). Two-column row: Overall progress card (Progress + dl with owner/members/created/updated) + Team members card (avatar + name + Owner badge). Tasks list card — INLINE rows (no imports from src/components/tasks/*), uses TaskStatusBadge + PriorityBadge from `@/components/common/badges`; sorted by priority weight desc then due date asc; red due date when isOverdue; "Add task" button → setView('tasks') + toast. Recent activity card = activities where entityId === project.id, latest 5, formatRelative. Edit dialog → updateProject + toast. Delete ConfirmDialog → deleteProject + destructive toast + goBack(). Subtle motion entrance, responsive stacks.
+   319→- All cross-dependency rules respected: badges imported from `@/components/common/badges`; formatDate/formatRelative/isOverdue/PRIORITIES/PROJECT_STATUSES/PROJECT_STATUS_LIST from `@/lib/constants`; EmptyState from `@/components/common/empty-state`; ConfirmDialog from `@/components/common/confirm-dialog`; no API routes / Prisma / fetch / axios; mock data via existing Zustand stores only.
+   320→- Fixed two typecheck issues during build: (1) `ProjectInput` is exported from `@/store/data-store`, not `@/lib/types` (corrected import in all three files); (2) hoisted `function` declarations in ProjectDetailsView lost narrowing on the early-returned `project` (converted to const arrow functions).
+   321→- Verification: `bunx eslint src/components/projects/ src/pages/projects/` → 0 errors / 0 warnings. `bunx tsc --noEmit` → no errors in my files (only unrelated errors in examples/* and skills/*). Dev server (`:3000`) returns 200; dev.log shows no compile errors related to my code.
+   322→
+   323→Stage Summary:
+   324→- 4 files delivered (2 created, 2 overwritten). Projects feature is fully wired with mock data: create / edit / delete projects, search + status filter with chips, loading skeleton, empty states, project cards grid with menu and click-through, rich project details page (stats, progress, members, tasks list with badges, recent activity, edit, delete). All flows produce toasts; delete confirms via ConfirmDialog (destructive). Dev log clean.
+   325→- Known minor caveat (owned by 1-a, NOT touched here): `text-brand-accent` used by `@/components/common/badges` is not registered as `--color-brand-accent` in `globals.css`, so the "active" project status badge text may fall back to inherited color in light mode.
+   326→- Work record written to `/home/z/my-project/agent-ctx/1-d-projects.md`.
+   327→
+   328→---
+   329→Task ID: 1-verify
+   330→Agent: orchestrator
+   331→Task: Integrate Phase 1 subagent outputs, fix cross-cutting issues, lint, and verify end-to-end with Agent Browser.
+   332→
+   333→Work Log:
+   334→- Collected all 5 subagent deliveries (1-b auth, 1-c dashboard, 1-d projects, 1-e tasks, 1-f profile/settings/notfound).
+   335→- Ran `bun run lint`: 1 error in orchestrator-owned `user-menu.tsx` (React Compiler `react-hooks/preserve-manual-memoization` on a `useMemo` with `[user?.name]`). Fixed by replacing the useMemo with a plain inline computation.
+   336→- Fixed an orchestrator token bug: `text-brand-accent` referenced in `src/lib/constants.ts` (PROJECT_STATUSES.active.badge) was never registered. Replaced with `text-brand`.
+   337→- Fixed a11y warning: the mobile `MobileNav` Sheet rendered `SheetContent` without a Radix `DialogTitle`/`DialogDescription`, producing `DialogContent requires a DialogTitle` console errors. Added `sr-only` `SheetTitle` + `SheetDescription`.
+   338→- Re-ran `bun run lint` → clean (0 errors, 0 warnings).
+   339→- Verified with Agent Browser end-to-end:
+   340→  - Auth shell renders (brand hero "Plan. Track. Ship — with AI on your side.", Sign in / Create account segmented tabs, email/password, Remember me, Use demo). 
+   341→  - Demo login (alex@devflow.ai / password) → dashboard. Toast "Welcome back, Alex Rivera".
+   342→  - Dashboard: greeting "Good morning, Alex", stats (Total Projects 6, Active 3, Total Tasks 14, Completed), progress ring + quick actions, Recharts donut (tasks by status) + bar (tasks by priority), recent activity, top projects (clickable). All numbers derived from useDataStore (no fake stats).
+   343→  - Projects: 6 cards, search + status filter + AI button, New project dialog (ProjectForm), per-card Edit/Delete (ConfirmDialog), clickable → project details.
+   344→  - Project details: back button, name + status + progress, stats strip (Total/Completed/Pending/Overdue), members, inline task list (shared badges, no cross-dep on tasks/), recent activity.
+   345→  - Tasks: list + filters (status/priority/project/assignee) + search + active chips + Clear; List/Board tabs; task cards with inline status + priority dropdowns + actions menu; New task dialog (TaskForm).
+   346→  - Kanban board: 3 columns (To Do / In Progress / Done) with @dnd-kit drag handles; inline status dropdown move verified To Do 6→5 / In Progress 4→5 (store update flows, toast).
+   347→  - Theme toggle: dark ⇄ light (html class switches). Settings Appearance: Light/Dark/System radios.
+   348→  - Profile: header + avatar + stats (Projects owned, Tasks assigned, Completed, Completion %) + About + Recent activity + inline edit.
+   349→  - Settings: Appearance / Profile / Notifications (switches) / Account (change password + destructive delete) tabs.
+   350→  - Mobile (390×844): sidebar hidden (`display:none`), hamburger drawer opens (verified via native `.click()`), Projects nav navigates + closes drawer, cards stack, tabs scroll, auth form fits screen with left panel hidden. Desktop (1280): sidebar visible, no hamburger.
+   351→  - Console: clean (0 errors, 0 warnings) after the Sheet a11y fix. Dev log: all `GET / 200`, `✓ Compiled`.
+   352→- Agent-browser synthetic pointer clicks were flaky on a few sticky/portal buttons (hamburger, Sign in) in the headless env; confirmed via native `.click()` that the underlying React handlers work for real users — this is a headless-automation quirk, not an app bug.
+   353→
+   354→Stage Summary:
+   355→- Phase 1 (project structure + complete frontend foundation) is COMPLETE and verified.
+   356→- Lint clean, dev server healthy on :3000, no console/runtime errors.
+   357→- Full app is navigable with mock data: auth, dashboard (charts), projects CRUD, project details, tasks CRUD + filters + kanban, profile, settings, 404, dark/light, responsive, animations, toasts, loading/empty/error states.
+   358→- Architecture in place for later phases: `src/lib/types|constants|mock-data`, `src/store/{auth,ui,data}`, `src/services/api.ts`, `src/components/{common,layout,auth,dashboard,projects,tasks,profile,settings}`, `src/pages/*`, single-route `src/app/page.tsx` view router.
+   359→- Next phase (Phase 2): the user's plan calls for "complete responsive dashboard UI" — much of this already landed in Phase 1 (charts, stats, activity). Phase 2 can focus on polish/edge cases, or we proceed to Phase 3 (auth UI polish) / Phase 4 (REST API via Route Handlers + JWT). Orchestrator will await user direction on which phase to run next.
+   360→
+   361→---
+   362→Task ID: 5 + 4-infra
+   363→Agent: orchestrator
+   364→Task: Pivot from Prisma/SQLite to MongoDB+Mongoose. Remove Prisma. Build Mongoose models, connection (memory server + auto-seed), shared API infra (response helpers, auth/JWT, zod schemas, serializers).
+   365→
+   366→Work Log:
+   367→- Removed: prisma/schema.prisma, prisma/seed.ts, db/custom.db, src/lib/db.ts, prisma/ package; uninstalled prisma + @prisma/client; removed prisma scripts from package.json.
+   368→- Installed: mongoose@9 + mongodb-memory-server@11. (Note: `bson` v7 used by mongodb has a Node:v8 API that Bun runtime doesn't support, but Next.js dev server runs via Node, so Mongoose works in API routes. The standalone seed script must run via `node --experimental-strip-types` instead of bun — see db:seed script.)
+   369→- Created `src/lib/db.ts`: connectDB() uses MONGODB_URI if set (Atlas), else starts a real in-process MongoDB via mongodb-memory-server. Connection cached across hot-reloads. Auto-seeds demo data on first connect (idempotent). Logs `[mongo]` lines to dev.log.
+   370→- Created `src/models/index.ts`: Mongoose models with ObjectId refs:
+   371→  - User { name, email (unique), password (select:false), avatar, bio, role }
+   372→  - Project { name, description, ownerId→User (cascade), status enum, progress }
+   373→  - Task { title, description, projectId→Project (cascade), assigneeId→User (setNull), status enum, priority enum, dueDate }
+   374→  - Activity { userId→User (cascade), action, entityType enum, entityId, description }
+   375→- Created `src/lib/api-response.ts`: ok/created/err/validationError/unauthorized/forbidden/notFound/conflict/serverError — all return the envelope { success, message, data, error } with correct HTTP codes (200/201/400/401/403/404/409/422/500).
+   376→- Created `src/lib/auth.ts`: hashPassword/verifyPassword (bcrypt), signToken/verifyToken (jwt, 30d), getTokenFromRequest (Bearer header OR devflow.token cookie), getAuthUser(req) (returns raw Mongoose lean doc with password selected), sanitizeUser.
+   377→- Created `src/lib/schemas.ts`: zod schemas — registerSchema, loginSchema, updateProfileSchema, createProjectSchema, updateProjectSchema, createTaskSchema, updateTaskSchema + parseBody helper.
+   378→- Created `src/lib/serializers.ts`: serializeUser/serializeProject/serializeTask/serializeActivity (Mongoose lean → API shape with id strings + ISO dates), computeMembers, logActivity (centralized, non-fatal).
+   379→- Created `src/app/api/health/route.ts` and verified: GET /api/health → 200 { users:4, projects:6, tasks:14, activities:7 }. Mongoose works in Next.js runtime. Dev server restarted; auto-seed runs on first connect.
+   380→
+   381→Stage Summary:
+   382→- MongoDB + Mongoose foundation complete and verified via /api/health.
+   383→- Demo login: alex@devflow.ai / password. Other users: maya@/jordan@/sam@devflow.ai (all password).
+   384→- Seed is automatic (no manual step needed); db:seed script also exists for a fresh standalone seed.
+   385→- Shared API contract for all Phase 4 route subagents (BINDING):
+   386→
+   387→================== PHASE 4 API CONTRACT (binding for all subagents) ==================
+   388→
+   389→ENV / IMPORTS:
+   390→- `import { connectDB } from "@/lib/db"` — call `await connectDB()` at the top of every route.
+   391→- `import { User, Project, Task, Activity } from "@/models"` — Mongoose models (ObjectId refs).
+   392→- `import { ok, created, err, validationError, unauthorized, forbidden, notFound, conflict, serverError } from "@/lib/api-response"`.
+   393→- `import { getAuthUser, sanitizeUser, signToken, verifyToken, hashPassword, verifyPassword, getTokenFromRequest } from "@/lib/auth"`.
+   394→- `import { registerSchema, loginSchema, updateProfileSchema, createProjectSchema, updateProjectSchema, createTaskSchema, updateTaskSchema, parseBody } from "@/lib/schemas"`.
+   395→- `import { serializeUser, serializeProject, serializeTask, serializeActivity, computeMembers, logActivity } from "@/lib/serializers"`.
+   396→- `import type { NextRequest } from "next/server"`.
+   397→
+   398→RESPONSE ENVELOPE (every route MUST use the helpers, never NextResponse.json directly):
+   399→- Success: `{ success: true, message, data, error: null }` via `ok(data, message?)` (200) or `created(data, message?)` (201).
+   400→- Error: `{ success: false, message, data: null, error }` via err/validationError/unauthorized/etc.
+   401→- HTTP codes: 200 success, 201 created, 400 bad, 401 unauth, 403 forbidden, 404 not found, 409 conflict, 422 validation, 500 server.
+   402→
+   403→AUTH:
+   404→- Protected routes: `const user = await getAuthUser(req); if (!user) return unauthorized();`
+   405→- getAuthUser returns a raw Mongoose lean doc (with password). Use sanitizeUser() before sending. `_id` is an ObjectId; convert with String(doc._id) or .toString().
+   406→- JWT in `Authorization: Bearer <token>` (or `devflow.token` cookie). 30d expiry. Payload { sub, email }.
+   407→
+   408→MONGOOSE USAGE NOTES:
+   409→- Use `.lean()` for reads to get plain objects: `await Project.find().lean()` — but lean docs have ObjectId _id, so serialize with the helpers (which call .toString()).
+   410→- For populates: `await Project.findById(id).populate("ownerId").lean()` — the populated field becomes `{ _id, name, email, ... }`.
+   411→- For tasks: `.populate([{ path: "projectId", select: "name" }, { path: "assigneeId", select: "name" }])` then serializeTask maps projectId→project, assigneeId→assignee.
+   412→- Validation: `parseBody(schema, body)` throws ZodError; catch with try/catch and return validationError(e).
+   413→- Activity logging: `await logActivity({ userId: String(user._id), action, entityType, entityId, description })`.
+   414→- Ownership: projects belong to user where `ownerId.equals(user._id)`. Tasks: derive owner via task.project.ownerId. Return 403 if not owner.
+   415→- Mongoose duplicate email throws a 11000 error — catch and return conflict("Email already registered").
+   416→
+   417→ROUTES TO BUILD (one subagent per group, parallel):
+   418→
+   419→1) AUTH (4-auth) — files:
+   420→   - src/app/api/auth/register/route.ts   POST  { name, email, password } → 201 { token, user }
+   421→   - src/app/api/auth/login/route.ts      POST  { email, password } → 200 { token, user }
+   422→   - src/app/api/auth/logout/route.ts     POST  → 200 (clears devflow.token cookie; JWT is stateless so just client-side)
+   423→   - src/app/api/auth/me/route.ts         GET   (auth) → 200 { user }
+   424→   - Set cookie on login/register: `res.cookies.set("devflow.token", token, { httpOnly:true, sameSite:"lax", maxAge:30d, path:"/" })`. Also return token in body for Bearer usage.
+   425→
+   426→2) PROJECTS (4-projects) — files:
+   427→   - src/app/api/projects/route.ts        GET (list, filter by ?status, ?search) / POST (create, auth)
+   428→   - src/app/api/projects/[id]/route.ts   GET / PUT / DELETE (auth + ownership; 403 if not owner)
+   429→   - GET list: populate ownerId, serialize each. Filter: status (if provided), search (regex on name/description).
+   430→   - GET [id]: populate ownerId + count tasks + tasks by status (for details). Return { project, taskCounts, members }.
+   431→   - POST: createProjectSchema, set ownerId = user._id, logActivity "created project".
+   432→   - PUT: updateProjectSchema, logActivity "updated project".
+   433→   - DELETE: delete project + its tasks (Task.deleteMany({ projectId })) + logActivity "deleted project".
+   434→
+   435→3) TASKS (4-tasks) — files:
+   436→   - src/app/api/tasks/route.ts          GET (list with filters: ?status, ?priority, ?project, ?search, ?assignee) / POST (create, auth)
+   437→   - src/app/api/tasks/[id]/route.ts     GET / PUT / DELETE (auth; ownership via task's project ownerId)
+   438→   - GET list: populate projectId (name) + assigneeId (name), serialize each.
+   439→   - POST: createTaskSchema; verify projectId exists + user owns it; set assigneeId if provided; logActivity "created task".
+   440→   - PUT: updateTaskSchema; if status changed to "done" logActivity "completed task"; else "updated task".
+   441→   - DELETE: logActivity "deleted task".
+   442→   - Filters support combinations. search = regex on title/description.
+   443→
+   444→4) MISC (4-misc) — files:
+   445→   - src/app/api/users/route.ts           GET (list, auth) → users (sanitized)
+   446→   - src/app/api/users/[id]/route.ts       GET / PUT (updateProfileSchema, auth + same-user or self) / DELETE (auth + self)
+   447→   - src/app/api/activities/route.ts      GET (list, auth, ?limit, ?entityType) → activities (populate user name)
+   448→   - src/app/api/dashboard/route.ts       GET (auth) → { stats: DashboardStats, tasksByStatus, tasksByPriority, recentActivities, topProjects }
+   449→     stats = { totalProjects, activeProjects, completedProjects, totalTasks, completedTasks, pendingTasks, overdueTasks, overallProgress, completionRate }
+   450→     tasksByStatus = [{ status, count }] for todo/in-progress/done
+   451→     tasksByPriority = [{ priority, count }] for low/medium/high/urgent
+   452→     recentActivities = latest 6 (serialized)
+   453→     topProjects = top 6 by updatedAt (serialized, with progress)
+   454→     Scope all data to the authenticated user's projects/tasks.
+   455→
+   456→DELIVERABLES: create the route files. After writing, test with curl (you have curl). Fix any errors. Append a worklog section per your Task ID. Report a concise summary.
+   457→
+   458→GLOBAL RULES:
+   459→- Do NOT modify src/lib/* or src/models/* (owned by orchestrator). Do NOT modify any frontend file. Only create files under src/app/api/*.
+   460→- Add `"use client"`? NO — API route handlers are server-only, no directive needed.
+   461→- After writing, run `curl` against each endpoint to verify, and `tail -40 /home/z/my-project/dev.log` to check for compile/runtime errors. Fix any errors you introduced.
+   462→- `bun run lint` must pass for your files.
+   463→
+   464→---
+   465→
+   466→## Task 4-misc — misc API routes (users / activities / dashboard)
+   467→
+   468→**Agent:** misc routes subagent (Phase 4 — REST API).
+   469→**Task:** Build the MISC group of Phase 4 Route Handlers: `GET /api/users`,
+   470→`GET|PUT|DELETE /api/users/[id]`, `GET /api/activities`, `GET /api/dashboard`,
+   471→all auth-gated and following the Phase 4 API contract.
+   472→
+   473→### Files created (exactly these — no others touched)
+   474→1. `src/app/api/users/route.ts` — `GET` (auth). Lists all users, sanitized via
+   475→   `serializeUser`, no passwords (Mongoose `select: false` on the password
+   476→   field already excludes them).
+   477→2. `src/app/api/users/[id]/route.ts` — `GET` (any auth user; for assignee
+   478→   lookups), `PUT` (self-only, `updateProfileSchema`, 11000→409 conflict),
+   479→   `DELETE` (self-only, cascades: collect owned project ids →
+   480→   `Task.deleteMany({ projectId: { $in } })` → `Project.deleteMany({ ownerId })`
+   481→   → `Task.updateMany({ assigneeId }, { $set: { assigneeId: null } })` →
+   482→   `Activity.deleteMany({ userId })` → `User.findByIdAndDelete`). PUT logs an
+   483→   `updated`/`user` activity.
+   484→3. `src/app/api/activities/route.ts` — `GET` (auth, scoped to `userId`).
+   485→   Supports `?limit=` (default 20, capped to 100) and `?entityType=` (validated
+   486→   against the `project|task|user|ai` enum → 422 on bad value). Populates
+   487→   `userId` with `select: "name"` and re-shapes the result before
+   488→   `serializeActivity` (sets `userId` back to the raw ObjectId and `user` to
+   489→   `{ name }`) — see "Serializer shape note" below.
+   490→4. `src/app/api/dashboard/route.ts` — `GET` (auth). Computes the full dashboard
+   491→   payload scoped to the user's projects + their tasks:
+   492→   - `stats`: totalProjects, activeProjects, completedProjects, totalTasks,
+   493→     completedTasks, pendingTasks, overdueTasks (status !== "done" && dueDate < now),
+   494→     overallProgress (avg of project.progress), completionRate (done/total*100).
+   495→   - `tasksByStatus`: `[{status, count}]` for todo/in-progress/done (always all 3).
+   496→   - `tasksByPriority`: `[{priority, count}]` for low/medium/high/urgent (always all 4).
+   497→   - `recentActivities`: latest 6 for the user, serialized (with `userName`).
+   498→   - `topProjects`: top 6 by `updatedAt` desc, serialized (with `ownerName`).
+   499→
+   500→### Serializer shape note (important for future agents)
+   501→`serializeActivity` / `serializeProject` expect the FK field to remain an
+   502→ObjectId (callable by `.toString()`), and the populated name to live in a
+   503→separate `user` / `owner` field. After Mongoose `populate("userId").lean()`
+   504→the FK is replaced with a plain object `{ _id, name }`, so we manually
+   505→re-shape before serializing:
+   506→
+   507→```ts
+   508→// activities
+   509→const reshaped = activities.map(a => {
+   510→  const populated = a.userId as { _id: ObjectId; name?: string };
+   511→  return { ...a, userId: populated._id, user: { name: populated.name ?? null } };
+   512→});
+   513→// projects (we already know the owner is the auth user, so no populate needed)
+   514→serializeProject({ ...p, owner: { name: user.name } });
+   515→```
+   516→
+   517→### curl results (all passing)
+   518→Logged in as `alex@devflow.ai` / `password` first, then ran the contract tests:
+   519→
+   520→```
+   521→GET  /api/users                                  → 200, 4 users (alex/maya/jordan/sam)
+   522→GET  /api/activities                             → 200, 3 activities (alex-scoped from 7 seeded)
+   523→GET  /api/activities?limit=3                     → 200, 3 activities
+   524→GET  /api/dashboard                              → 200, full payload:
+   525→   stats: {totalProjects:6, activeProjects:3, completedProjects:1,
+   526→           totalTasks:14, completedTasks:4, pendingTasks:10, overdueTasks:1,
+   527→           overallProgress:64, completionRate:29}
+   528→   tasksByStatus:    todo=6, in-progress=4, done=4
+   529→   tasksByPriority:  low=2, medium=5, high=6, urgent=1
+   530→   recentActivities: 3   topProjects: 6 (owner="6a9…", ownerName="Alex Rivera")
+   531→PUT  /api/users/<alex_id>  {"bio":"Updated bio via curl"} → 200, bio updated
+   532→PUT  /api/users/<maya_id>  {"bio":"hack"}                → 403 "You can only edit your own profile"
+   533→GET  /api/users/000000000000000000000000                   → 404
+   534→GET  /api/dashboard  (no auth)                            → 401
+   535→GET  /api/users       (no auth)                           → 401
+   536→GET  /api/users/<alex_id>                                  → 200 (single, sanitized)
+   537→GET  /api/activities?entityType=ai                         → 200, 1 activity (all entityType=ai)
+   538→GET  /api/activities?entityType=bogus                      → 422 "entityType: must be one of: project, task, user, ai"
+   539→GET  /api/activities?limit=101                             → 200, 4 activities (capped to 100)
+   540→PUT  /api/users/<alex_id>  {"email":"maya@devflow.ai"}    → 409 "Email already registered"
+   541→```
+   542→
+   543→### Dev server log (tail)
+   544→All responses are 200/4xx with correct codes; no compile or runtime errors
+   545→introduced. Mongoose `{ new: true }` deprecation warning was avoided by
+   546→switching to `returnDocument: "after"` on `findByIdAndUpdate`.
+   547→
+   548→### Lint
+   549→`bun run lint` → **0 errors, 10 warnings**. All 10 warnings are in other
+   550→agents' files (`src/app/api/auth/login/route.ts`, `auth/register/route.ts`,
+   551→`projects/[id]/route.ts`, `projects/route.ts` — unused `eslint-disable`
+   552→directives). My four files (`users/route.ts`, `users/[id]/route.ts`,
+   553→`activities/route.ts`, `dashboard/route.ts`) produce **zero warnings**.
+   554→
+   555→### Stage summary
+   556→Phase 4 MISC group is complete and verified end-to-end against the live dev
+   557→server. All four endpoints follow the contract envelope (`ok/err/...` from
+   558→`@/lib/api-response`), require auth via `getAuthUser`, validate inputs
+   559→(`updateProfileSchema`, `entityType` enum), handle ownership/self checks
+   560→(403), missing resources (404), duplicate emails (409), and unauthenticated
+   561→requests (401). Dashboard data is correctly scoped to the authenticated
+   562→user's projects and their tasks. No modifications to `src/lib/*`,
+   563→`src/models/*`, or any frontend file.
+   564→
+   565→---
+   566→Task ID: 4-auth
+   567→Agent: subagent (full-stack-developer)
+   568→Task: Build the Auth REST API routes (register / login / logout / me) for Phase 4 per the binding API contract.
+   569→
+   570→Work Log:
+   571→- Read worklog + PHASE 4 API CONTRACT (binding). Inspected the shared helpers I had to use: `src/lib/api-response.ts` (ok/created/err/validationError/unauthorized/conflict/serverError), `src/lib/auth.ts` (hashPassword/verifyPassword/signToken/sanitizeUser/getAuthUser/getTokenFromRequest), `src/lib/schemas.ts` (registerSchema/loginSchema/parseBody), `src/lib/serializers.ts`, `src/models/index.ts`, and `src/app/api/health/route.ts` as the reference implementation.
+   572→- Did NOT modify anything under `src/lib/*`, `src/models/*`, or any frontend file. Only created 4 files under `src/app/api/auth/*`.
+   573→- Created `src/app/api/auth/register/route.ts` (POST):
+   574→  - `await connectDB()` at top, parse JSON body, validate with `registerSchema` via `parseBody` (catches ZodError → `validationError`).
+   575→  - Lowercase email before lookup. Pre-check `User.findOne({ email })` → `conflict("Email already registered")` (409). Also catch Mongoose 11000 from `User.create` as a fallback race-safety net.
+   576→  - `hashPassword(password)`, `User.create({ name, email, password: hashed })`, re-fetch `User.findById(_id).lean()` so the lean doc omits `password` (schema `select:false`). Sign `signToken({ sub: String(createdDoc._id), email })`.
+   577→  - Return `created({ token, user: sanitizeUser(user) }, "Account created")` (201) and set cookie `devflow.token` (httpOnly, sameSite:"lax", path:"/", maxAge:30d).
+   578→- Created `src/app/api/auth/login/route.ts` (POST):
+   579→  - Validate with `loginSchema`. Find user with `User.findOne({ email }).select("+password").lean()` (password included).
+   580→  - If user missing OR `verifyPassword(password, user.password)` returns false → `unauthorized("Invalid email or password")` (401). Same generic message to avoid user enumeration.
+   581→  - Sign token, set the same cookie, return `ok({ token, user: sanitizeUser(u) }, "Login successful")` (200).
+   582→- Created `src/app/api/auth/logout/route.ts` (POST):
+   583→  - `ok(null, "Logged out")` and `res.cookies.set("devflow.token", "", { httpOnly:true, sameSite:"lax", path:"/", maxAge:0 })` to clear the cookie. JWT is stateless; client discards its in-memory token too.
+   584→- Created `src/app/api/auth/me/route.ts` (GET):
+   585→  - `await connectDB(); const user = await getAuthUser(req); if (!user) return unauthorized(); return ok({ user: sanitizeUser(user) }, "Authenticated user")`. `getAuthUser` resolves the Bearer token (or `devflow.token` cookie) and returns the raw lean doc with `+password` selected — sanitizeUser strips it before sending.
+   586→- All four routes use the shared response envelope helpers only (no raw NextResponse.json). Cookie name and 30-day maxAge match the contract.
+   587→- Type notes: `sanitizeUser` lives in `@/lib/auth` and expects a doc with `_id` (ObjectId or string with `.toString()`), `name`, `email`, `avatar?`, `bio?`, `role?`, `createdAt` (Date), `updatedAt` (Date). Mongoose `.lean()` returns `ObjectId` for `_id` and `Date` instances for timestamps — both satisfy the helper. I cast the lean doc to `never` to satisfy the helper's internal `UserDoc` type without coupling the route to that private type. Zod errors are cast to `never` for the same reason when forwarding to `validationError`.
+   588→
+   589→Testing (all 8 numbered tests from the contract, run via a retry-aware Node helper because the shared dev server is being restarted by sibling subagents):
+   590→1. `POST /api/auth/register` valid → 201, `data.token` + `data.user` with id/name/email and NO password field. ✅
+   591→2. `POST /api/auth/register` duplicate email → 409 `{"success":false,"message":"Email already registered",...}`. ✅
+   592→3. `POST /api/auth/register` invalid body (`{"name":"T","email":"bad","password":"x"}`) → 422 `{"success":false,"message":"name: Name must be at least 2 characters",...}`, `error` contains the full ZodError issues JSON. ✅
+   593→4. `POST /api/auth/login` alex@devflow.ai/password → 200, returns `data.token` + sanitized `data.user`. ✅
+   594→5. `POST /api/auth/login` alex@devflow.ai/wrong → 401 `{"success":false,"message":"Invalid email or password",...}`. ✅
+   595→6. `GET /api/auth/me` with `Authorization: Bearer <token>` → 200, returns the full sanitized Alex user (id, name, email, avatar, bio, role, createdAt, updatedAt). ✅
+   596→7. `GET /api/auth/me` with no auth → 401 `{"success":false,"message":"Unauthorized",...}`. ✅
+   597→8. `POST /api/auth/logout` → 200 `{"success":true,"message":"Logged out","data":null}` and Set-Cookie clears `devflow.token` (Max-Age=0). ✅
+   598→
+   599→Bonus check: confirmed `data.user` in the register response has NO `password` key (it has `id`, `name`, `email`, `avatar`, `bio`, `role`, `createdAt`, `updatedAt` only). ✅
+   600→
+   601→`bun run lint` result for the new files: 0 errors, 0 warnings. (The 7 remaining warnings about "unused eslint-disable directive" in `src/app/api/projects/*` are owned by the 4-projects subagent — I removed the equivalent ones in my own files during the lint pass.)
+   602→
+   603→dev.log: no compile/runtime errors attributed to the auth routes; only the pre-existing Mongoose `findOneAndUpdate` deprecation warnings from the 4-misc user routes show up.
+   604→
+   605→Stage Summary:
+   606→- 4 files created: `src/app/api/auth/register/route.ts`, `src/app/api/auth/login/route.ts`, `src/app/api/auth/logout/route.ts`, `src/app/api/auth/me/route.ts`. All follow the binding PHASE 4 API CONTRACT: shared envelope helpers, zod validation, JWT in `Authorization: Bearer` and `devflow.token` cookie, httpOnly + lax + path=/ + 30d cookie on auth, password hashing via bcryptjs, password never sent in responses. All 8 numbered curl tests pass. Lint clean for the new files.
+   607→- Hard constraints respected: only created files under `src/app/api/auth/*`, did NOT touch `src/lib/*`, `src/models/*`, or any frontend file. API routes are server-only (no `'use client'`). Dev server was shared with sibling subagents; I started it once when needed and let the shared instance keep running.
+   608→
+   609→---
+   610→Task ID: 4-tasks
+   611→Agent: full-stack-developer (subagent)
+   612→Task: Build the Tasks REST API — `src/app/api/tasks/route.ts` (GET list + POST create) and `src/app/api/tasks/[id]/route.ts` (GET / PUT / DELETE) on Next.js 16 App Router + MongoDB + Mongoose. Auth via JWT, ownership via the task's project ownerId, filters + search + activity logging.
+   613→
+   614→Work Log:
+   615→- Read the worklog + PHASE 4 API CONTRACT (binding). Inspected `src/lib/{db,auth,api-response,schemas,serializers}.ts` and `src/models/index.ts` to confirm exact import paths, helper signatures, and the populated-doc shape that `serializeTask` expects.
+   616→- Created `src/app/api/tasks/route.ts`:
+   617→  - `GET`: `getAuthUser(req)` → 401 if none; `connectDB()`. Scoped to the user's owned projects via `Project.find({ ownerId: user._id }).select("_id").lean()`. Base query `{ projectId: { $in: userProjectIds } }`. Filters (all optional, combinable):
+   618→    - `?status=todo|in-progress|done` (enum-validated; invalid values ignored)
+   619→    - `?priority=low|medium|high|urgent` (enum-validated; invalid ignored)
+   620→    - `?project=<id>` — if valid ObjectId, intersect with the user's owned projects (returns empty list if the user doesn't own the requested project; does NOT leak the project's existence). Invalid ObjectIds are ignored (fall back to the `$in` filter).
+   621→    - `?search=<text>` — regex on `{ title, description }`, case-insensitive, regex-metacharacters escaped to avoid ReDoS.
+   622→    - `?assignee=<id>` — `unassigned` maps to `assigneeId: null`; valid ObjectId filters by that user; invalid values ignored.
+   623→    - Fetch: `Task.find(query).populate([{ path: "projectId", select: "name" }, { path: "assigneeId", select: "name" }]).sort({ updatedAt: -1 }).lean()`.
+   624→  - `POST`: validates body with `createTaskSchema` (catches ZodError → `validationError`). Verifies the project exists AND is owned by the user (404 / 403). If `assigneeId` provided, validates ObjectId + that the user exists (422 / 404). Converts `dueDate` ISO string to `Date`. Creates the task, `logActivity("created", description=created task "<title>")`, re-fetches with populate, returns `created({ task: serialized }, "Task created")`.
+   625→- Created `src/app/api/tasks/[id]/route.ts`:
+   626→  - `GET`: validates ObjectId, fetches with populate, checks ownership via the task's project ownerId (404 / 403). Returns `ok({ task: serialized }, "Task fetched")`.
+   627→  - `PUT`: validates ObjectId; fetches existing task and checks ownership BEFORE applying updates. Validates with `updateTaskSchema` (partial). Supports moving the task to a different owned project (404 / 403 for the new project). Supports reassigning / unassigning (422 for invalid ObjectId). Builds the update patch field-by-field. `Task.findByIdAndUpdate(id, update, { new: true }).populate(...)`. If `status` changed from non-done to "done" → `logActivity("completed", description=completed task "<title>")`; otherwise `logActivity("updated", ...)`. Returns `ok({ task: serialized }, "Task updated")`.
+   628→  - `DELETE`: validates ObjectId, fetches with populate, checks ownership. `Task.findByIdAndDelete(id)`, `logActivity("deleted", description=deleted task "<title>")`. Returns `ok(null, "Task deleted")`.
+   629→- Added a local `adaptTaskForSerialize(t)` helper in BOTH files (duplicated for self-containment; identical behavior). The helper rewrites a populated lean task so that `t.projectId` is the underlying `_id` (so `id(t.projectId).toString()` returns the hex string), `t.project` is the populated project doc `{ _id, name }`, `t.assigneeId` is the underlying id or null, and `t.assignee` is the populated assignee doc or null. This is needed because `.populate("projectId").lean()` replaces the ObjectId with the populated doc, but `serializeTask` (in src/lib/serializers.ts) reads `task.project?.name` and `id(task.projectId)` as if `projectId` were still an id and `project` were a separate field.
+   630→- Honored the Next.js 16 dynamic-params signature: `export async function GET(req, { params }: { params: Promise<{ id: string }> }) { const { id } = await params; ... }`.
+   631→- Hard constraint respected: ONLY files under `src/app/api/tasks/*` were created. No edits to `src/lib/*`, `src/models/*`, or any frontend file.
+   632→- Dev server kept running; only `bun run lint` was run. No restart.
+   633→
+   634→Curl results (spec tests 1-11 + extra edge cases, all PASS):
+   635→- 1: `GET /api/tasks` (auth) → 14 tasks. ✅
+   636→- 2: `GET /api/tasks?status=done` → 4 done tasks. ✅
+   637→- 3: `GET /api/tasks?priority=urgent` → 1 urgent task ("Implement auth flow"). ✅
+   638→- 4: `GET /api/tasks?search=auth` → 1 task matching "auth". ✅
+   639→- 5: `GET /api/tasks?project=<projid>` → 6 tasks for the DevFlow AI Web App project. ✅
+   640→- 6: `POST /api/tasks` create → 201, populated `projectName="DevFlow AI Web App"`, `assignedTo="unassigned"`, `assignedName=null`, `dueDate=null`. ✅
+   641→- 7: `PUT /api/tasks/<id>` `{"status":"done"}` → 200, status: done. ✅
+   642→- 8: `DELETE /api/tasks/<id>` → 200 "Task deleted". ✅
+   643→- 9: `GET /api/tasks` no auth → 401. ✅
+   644→- 10: `GET /api/tasks/000000000000000000000000` → 404. ✅
+   645→- 11: `GET /api/tasks?status=todo&priority=high` → 1 task ("AI task generation"). ✅
+   646→- Extra: `?assignee=unassigned` → 0 tasks (no seed tasks are unassigned). ✅
+   647→- Extra: `?assignee=<Maya's id>` → 6 tasks assigned to Maya Chen. ✅
+   648→- Extra: `?project=<invalid ObjectId>` → ignored, returns 14. ✅
+   649→- Extra: POST with `assigneeId`, `dueDate`, `status=in-progress`, `priority=urgent` → 201, all fields persisted + populated correctly. ✅
+   650→- Extra: POST with valid title + non-existent `projectId` → 404 "Project not found". ✅
+   651→- Extra: POST with `{"title":"x"}` (title too short + missing projectId) → 422 validation. ✅
+   652→- Extra: PUT with `{"status":"bogus"}` → 422. ✅
+   653→- Extra: PUT changing only `priority` (no status change) → 200, priority updated, status unchanged. ✅
+   654→- Extra: PUT moving task to a different owned project → 200, `projectName` updated correctly. ✅
+   655→
+   656→Lint:
+   657→- `bunx eslint src/app/api/tasks/**/*.ts` → 0 errors, 0 warnings (my files clean).
+   658→- Full project `bun run lint` → 0 errors, 7 warnings — all in `src/app/api/projects/*` (4-projects agent) and `src/app/api/auth/*` (4-auth agent). None introduced by me.
+   659→
+   660→Dev log:
+   661→- `tail -80 dev.log` shows all task requests returning correct HTTP codes (200/201/401/404/422), no 500s, no compile errors.
+   662→- One Mongoose 9 deprecation warning for `{ new: true }` in `findByIdAndUpdate` — kept per the spec wording; non-fatal.
+   663→
+   664→Stage Summary:
+   665→- 2 files created under `src/app/api/tasks/*` only.
+   666→- All 11 spec curl tests pass + 9 extra edge-case tests pass.
+   667→- Lint clean on my files; full-project lint exits 0 (warnings are in other agents' files).
+   668→- Dev server healthy on :3000; no compile/runtime errors introduced.
+   669→- API contract honored: response envelope via `ok/created/err/validationError/unauthorized/forbidden/notFound/serverError`; HTTP codes 200/201/400/401/403/404/422/500; auth via `getAuthUser`; serializers + zod schemas reused from `src/lib/*`; ownership via the task's project `ownerId`; activity logging centralized.
+   670→- Work record written to `/home/z/my-project/agent-ctx/4-tasks.md`.
+   671→
+   672→---
+   673→
+   674→## Task 4-projects — Projects API (subagent: projects-api)
+   675→
+   676→**Files created (server-only Route Handlers):**
+   677→- `src/app/api/projects/route.ts` — `GET` (list, auth, ?status, ?search) + `POST` (create, auth)
+   678→- `src/app/api/projects/[id]/route.ts` — `GET` / `PUT` / `DELETE` (auth + ownership; 403 if not owner)
+   679→
+   680→**Work Log:**
+   681→- Implemented all 5 handlers per the binding Phase 4 contract: `getAuthUser` → 401, `connectDB`, `mongoose.isValidObjectId` → 404 ("Invalid project id"), `.populate("ownerId").lean()` for owner name + ownership (`String(ownerId._id) === String(user._id)`).
+   682→- List: builds `query = { ownerId }`, validates `?status` against `PROJECT_STATUSES` (422 on invalid), adds `?search` as case-insensitive `$or` regex on `name | description`. Sort `updatedAt: -1`.
+   683→- Detail: returns `{ project, taskCounts: {total, completed, pending, overdue}, members, tasks }` with `Task.find({ projectId: id }).populate("assigneeId", "name").lean()` and `computeMembers({name: ownerName}, tasks.map(t => ({assignee: t.assigneeId})))`.
+   684→- POST: `createProjectSchema` → `parseBody` (422 on Zod error); sets `ownerId = user._id`; `logActivity({action:"created", ...})`; re-fetches with populate so `ownerName` is in the 201 response.
+   685→- PUT: `updateProjectSchema` (partial); `findByIdAndUpdate(id, validated, { new: true })` then populate; `logActivity("updated")`.
+   686→- DELETE: cascade `Task.deleteMany({ projectId: id })` → `Project.findByIdAndDelete(id)`; `logActivity("deleted")`.
+   687→
+   688→**Serializer adapter:** The shared `serializeProject` reads `project.owner?.name` for `ownerName` and calls `id(project.ownerId)` for the `owner` id, but Mongoose `.populate("ownerId").lean()` stores the populated user doc under `ownerId` (replacing the ObjectId). To avoid `ownerName: null` and `owner: "[object Object]"` without modifying shared lib code, both route files declare a small local adapter `toSerializableProject(doc)` that splits the populated doc into `owner: <userDoc>` and restores `ownerId: <userDoc._id>`. The `[id]/route.ts` file has an analogous `toSerializableTask(task)` adapter for `projectId`/`assigneeId` → `project`/`assignee` so `projectName` and `assignedName` populate correctly.
+   689→
+   690→**Curl results (all 10 binding tests PASS):**
+   691→1. `GET /api/projects` (no auth) → **401** ✓
+   692→1. `GET /api/projects` (auth) → **200**, 6 projects, `ownerName: "Alex Rivera"` ✓
+   693→2. `GET /api/projects?status=active` → **200**, 3 active projects ✓
+   694→3. `GET /api/projects?search=design` → **200**, 1 match ("Design System v2") ✓
+   695→4. `POST /api/projects {name,description}` → **201**, project with `ownerName: "Alex Rivera"` ✓
+   696→5. `GET /api/projects/<new_id>` → **200**, `{project, taskCounts, members, tasks}` ✓
+   697→5b. `GET /api/projects/<existing-with-tasks>` ("DevFlow AI Web App") → **200**, taskCounts `{total:7, completed:2, pending:5, overdue:0}`, members `["Alex Rivera","Maya Chen","Jordan Park"]`, 7 tasks each with `assignedName` ✓
+   698→6. `PUT /api/projects/<new_id> {progress:50,status:"active"}` → **200**, updated ✓
+   699→7. `DELETE /api/projects/<new_id>` → **200**, `Project deleted` ✓
+   700→8. `GET /api/projects` after delete → **200**, count back to 6 ✓
+   701→9. `GET /api/projects` no auth → **401** ✓
+   702→10. `GET /api/projects/000000000000000000000000` → **404** `Project not found` ✓
+   703→
+   704→Also confirmed: invalid ObjectId-shaped strings (e.g. `"not-an-id"`) → **404** `"Invalid project id"`.
+   705→
+   706→**Lint:** `bun run lint` → **clean** (0 errors, 0 warnings) for my two files. Removed initially-added `eslint-disable @typescript-eslint/no-explicit-any` comments after seeing the project config turns that rule off (the disables were flagged as unused).
+   707→
+   708→**Stage Summary:** The projects API is complete and verified end-to-end against the seeded data (alex@devflow.ai). All 10 binding curl tests pass; lint is clean; dev log shows only successful responses and the global Mongoose `{ new: true }` deprecation warning (mandated by the binding spec). No files outside `src/app/api/projects/*` were modified.
+   709→
+   710→**Notes for orchestrator:**
+   711→1. At the start of my run, the Next.js dev server on :3000 was NOT running (only the in-process mongod was alive). I started `next dev -p 3000` so I could curl-test; flagging in case :3000 needs to be re-checked.
+   712→2. Seed quirk (NOT my code, owned by orchestrator's `src/lib/db.ts`): in the seeded DB, the "Offline sync" task (declared in seed with `projectId: p2._id`, intended for "Mobile Companion App") actually ends up attached to "DevFlow AI Web App". As a result DevFlow AI Web App reports 7 tasks (expected 6) and Mobile Companion App reports 1 (expected 2). My `GET /api/projects/[id]` correctly returns what the DB holds — surfacing this so it isn't mistaken for an API bug.
+   713→3. The `{ new: true }` Mongoose-9 deprecation warning is emitted by my PUT route; the binding spec mandates `{ new: true }` so I kept it. If the orchestrator wants the warning gone, 4-projects and 4-tasks can switch to `returnDocument: 'after'` together.
+   714→
+   715→Worklog record also at: `/home/z/my-project/agent-ctx/4-projects.md`
+   716→

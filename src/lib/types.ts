@@ -1,5 +1,5 @@
 // Domain types for DevFlow AI.
-// These mirror the Prisma models (User, Project, Task, Activity) used in later phases.
+// These mirror the Mongoose models (User, Project, Task, Activity) in src/models/index.ts.
 
 export type ProjectStatus = "planning" | "active" | "completed" | "archived";
 export type TaskStatus = "todo" | "in-progress" | "done";
