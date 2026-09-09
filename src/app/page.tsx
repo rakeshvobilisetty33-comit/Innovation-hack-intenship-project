@@ -8,16 +8,33 @@ import { useAuthStore } from "@/store/auth-store";
 import { useDataStore } from "@/store/data-store";
 import { useUIStore } from "@/store/ui-store";
 import { Logo } from "@/components/common/logo";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import LoginView from "@/pages/auth/login-view";
-import RegisterView from "@/pages/auth/register-view";
-import DashboardView from "@/pages/dashboard/dashboard-view";
-import ProjectsView from "@/pages/projects/projects-view";
-import ProjectDetailsView from "@/pages/projects/project-details-view";
-import TasksView from "@/pages/tasks/tasks-view";
-import ProfileView from "@/pages/profile/profile-view";
-import SettingsView from "@/pages/settings/settings-view";
-import NotFoundView from "@/pages/not-found-view";
+// Lazy-load the views so each heavy page (dashboard, tasks with dnd-kit)
+// compiles on demand into its own chunk rather than all at once.
+const LoginView = React.lazy(() => import("@/pages/auth/login-view"));
+const RegisterView = React.lazy(() => import("@/pages/auth/register-view"));
+const DashboardView = React.lazy(() => import("@/pages/dashboard/dashboard-view"));
+const ProjectsView = React.lazy(() => import("@/pages/projects/projects-view"));
+const ProjectDetailsView = React.lazy(() => import("@/pages/projects/project-details-view"));
+const TasksView = React.lazy(() => import("@/pages/tasks/tasks-view"));
+const ProfileView = React.lazy(() => import("@/pages/profile/profile-view"));
+const SettingsView = React.lazy(() => import("@/pages/settings/settings-view"));
+const NotFoundView = React.lazy(() => import("@/pages/not-found-view"));
+
+function ViewLoader() {
+  return (
+    <div className="space-y-4 p-1">
+      <Skeleton className="h-10 w-48" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-64 w-full rounded-xl" />
+    </div>
+  );
+}
 
 export default function Home() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -65,7 +82,11 @@ export default function Home() {
   }
 
   if (!isAuthenticated) {
-    return <AuthShell />;
+    return (
+      <React.Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Logo size={36} /></div>}>
+        <AuthShell />
+      </React.Suspense>
+    );
   }
 
   const activeView = (() => {
@@ -97,7 +118,9 @@ export default function Home() {
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
         >
-          {activeView}
+          <React.Suspense fallback={<ViewLoader />}>
+            {activeView}
+          </React.Suspense>
         </motion.div>
       </AnimatePresence>
     </AppShell>

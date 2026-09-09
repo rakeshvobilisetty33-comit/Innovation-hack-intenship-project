@@ -29,9 +29,10 @@ import {
 } from "@/components/ui/select";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectForm } from "@/components/projects/project-form";
+import { GenerateTasksDialog } from "@/components/tasks/generate-tasks-dialog";
 import { EmptyState } from "@/components/common/empty-state";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import { useDataStore, type ProjectInput } from "@/store/data-store";
+import { useDataStore, type ProjectInput, type TaskInput } from "@/store/data-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useUIStore } from "@/store/ui-store";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,7 @@ export default function ProjectsView() {
   const updateProject = useDataStore((s) => s.updateProject);
   const deleteProject = useDataStore((s) => s.deleteProject);
   const tasksForProject = useDataStore((s) => s.tasksForProject);
+  const addTask = useDataStore((s) => s.addTask);
   const user = useAuthStore((s) => s.user);
   const openProject = useUIStore((s) => s.openProject);
   const { toast } = useToast();
@@ -64,6 +66,33 @@ export default function ProjectsView() {
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = React.useState<Project | null>(null);
+
+  // AI task generation dialog
+  const [aiOpen, setAiOpen] = React.useState(false);
+  const [aiProjectId, setAiProjectId] = React.useState("");
+
+  // Default the AI target project to the first active project when opening.
+  React.useEffect(() => {
+    if (aiOpen) {
+      const firstActive = projects.find((p) => p.status === "active");
+      setAiProjectId(firstActive?.id ?? projects[0]?.id ?? "");
+    }
+  }, [aiOpen, projects]);
+
+  const handleAddAiTasks = async (generated: { title: string; description: string; priority: "low" | "medium" | "high" | "urgent" }[], projectId: string) => {
+    if (!projectId) return;
+    const proj = projects.find((p) => p.id === projectId);
+    for (const g of generated) {
+      const input: TaskInput = {
+        title: g.title,
+        description: g.description,
+        project: projectId,
+        priority: g.priority,
+        status: "todo",
+      };
+      await addTask(input, user?.name, proj?.name);
+    }
+  };
 
   React.useEffect(() => {
     const t = window.setTimeout(() => setLoading(false), 500);
@@ -191,12 +220,7 @@ export default function ProjectsView() {
         <Button
           variant="ghost"
           className="w-full text-muted-foreground hover:text-foreground sm:w-auto"
-          onClick={() =>
-            toast({
-              title: "AI task generation",
-              description: "Open a project to generate tasks with AI.",
-            })
-          }
+          onClick={() => setAiOpen(true)}
         >
           <Sparkles className="h-4 w-4" />
           AI
@@ -376,6 +400,16 @@ export default function ProjectsView() {
         confirmLabel="Delete project"
         destructive
         onConfirm={handleDeleteConfirm}
+      />
+
+      {/* AI task generation */}
+      <GenerateTasksDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+        targetProjectId={aiProjectId}
+        onTargetProjectChange={setAiProjectId}
+        onAddTasks={handleAddAiTasks}
       />
     </div>
   );

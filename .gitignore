@@ -52,3 +52,18 @@ prompt
 server.log
 # Skills directory
 /skills/
+# DevFlow AI secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Dev artifacts
+dev-supervisor.sh
+/tmp/
+agent-ctx/
+download/
+examples/
+tests/
+db/
+*.db
+WORKLOG_TODO

@@ -2,17 +2,6 @@
 
 import * as React from "react";
 import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
   Card,
   CardContent,
   CardHeader,
@@ -28,7 +17,6 @@ import type { Priority, Task, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // Status colors mirror the dot indicators from constants.
-// Sky is permitted (in-progress). Emerald = brand. Slate = neutral.
 const STATUS_COLOR: Record<TaskStatus, string> = {
   todo: "oklch(0.7 0.01 250)",
   "in-progress": "oklch(0.68 0.13 232)",
@@ -42,39 +30,181 @@ const PRIORITY_COLOR: Record<Priority, string> = {
   urgent: "oklch(0.62 0.22 25)",
 };
 
-interface TooltipPayloadItem {
-  name?: string;
-  value?: number;
-  payload?: { label?: string; value?: number; color?: string };
+// ── Donut chart (pure SVG, no recharts) ────────────────────────────────
+function DonutChart({
+  data,
+  total,
+  size = 180,
+}: {
+  data: { label: string; value: number; color: string }[];
+  total: number;
+  size?: number;
+}) {
+  const [hover, setHover] = React.useState<number | null>(null);
+  const stroke = 26;
+  const radius = (size - stroke) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = 2 * Math.PI * radius;
+  const segments = data.filter((d) => d.value > 0);
+  // Cumulative offsets (no mutation during render).
+  const offsets = segments.reduce<number[]>((arr, d) => {
+    const prev = arr.length > 0 ? arr[arr.length - 1] : 0;
+    const frac = total > 0 ? d.value / total : 0;
+    arr.push(prev + frac * circumference);
+    return arr;
+  }, []);
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        {/* Track */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke="color-mix(in oklch, var(--muted-foreground) 12%, transparent)"
+          strokeWidth={stroke}
+        />
+        {segments.map((d, i) => {
+          const frac = total > 0 ? d.value / total : 0;
+          const len = frac * circumference;
+          const gap = circumference - len;
+          const seg = (
+            <circle
+              key={i}
+              cx={cx}
+              cy={cy}
+              r={radius}
+              fill="none"
+              stroke={d.color}
+              strokeWidth={hover === i ? stroke + 4 : stroke}
+              strokeDasharray={`${Math.max(len - 2, 0.5)} ${gap + 2}`}
+              strokeDashoffset={-offsets[i]}
+              strokeLinecap="butt"
+              style={{
+                transition: "stroke-width 150ms ease",
+                cursor: "pointer",
+              }}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            />
+          );
+          return seg;
+        })}
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        {hover !== null ? (
+          <>
+            <span className="text-2xl font-semibold tabular-nums">
+              {segments[hover].value}
+            </span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {segments[hover].label}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-2xl font-semibold tabular-nums">{total}</span>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              tasks
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function ChartTooltip({
-  active,
-  payload,
+// ── Bar chart (pure SVG, no recharts) ──────────────────────────────────
+function BarChart({
+  data,
   total,
+  height = 200,
 }: {
-  active?: boolean;
-  payload?: TooltipPayloadItem[];
+  data: { label: string; value: number; color: string }[];
   total: number;
+  height?: number;
 }) {
-  if (!active || !payload || payload.length === 0) return null;
-  const item = payload[0];
-  const label = item?.payload?.label ?? item?.name ?? "";
-  const value = item?.payload?.value ?? item?.value ?? 0;
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const [hover, setHover] = React.useState<number | null>(null);
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const barWidth = 48;
+  const gap = 16;
+  const chartH = height - 32; // leave room for labels
+  const width = data.length * barWidth + (data.length - 1) * gap + 16;
+
   return (
-    <div className="recharts-default-tooltip min-w-[10rem] rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-soft">
-      <div className="flex items-center gap-2">
-        <span
-          className="size-2.5 rounded-full"
-          style={{ backgroundColor: item?.payload?.color }}
-        />
-        <span className="font-medium text-foreground">{label}</span>
-      </div>
-      <div className="mt-1 flex items-center justify-between gap-4 text-muted-foreground">
-        <span>{value} tasks</span>
-        <span className="tabular-nums">{pct}%</span>
-      </div>
+    <div className="w-full overflow-x-auto scrollbar-thin">
+      <svg
+        width="100%"
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="mx-auto"
+        style={{ maxWidth: width }}
+      >
+        {/* Y gridlines (3 levels) */}
+        {[0, 0.5, 1].map((g) => (
+          <line
+            key={g}
+            x1={8}
+            x2={width - 8}
+            y1={8 + g * (chartH - 16)}
+            y2={8 + g * (chartH - 16)}
+            stroke="color-mix(in oklch, var(--muted-foreground) 10%, transparent)"
+            strokeWidth={1}
+          />
+        ))}
+        {data.map((d, i) => {
+          const h = (d.value / max) * (chartH - 16);
+          const x = 8 + i * (barWidth + gap);
+          const y = chartH - h + 4;
+          return (
+            <g
+              key={i}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              style={{ cursor: "pointer" }}
+            >
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={h}
+                rx={6}
+                fill={d.color}
+                opacity={hover === null || hover === i ? 1 : 0.45}
+                style={{ transition: "opacity 120ms ease" }}
+              />
+              {/* Value label on top (when hovered or always for non-zero) */}
+              {(hover === i || d.value > 0) && (
+                <text
+                  x={x + barWidth / 2}
+                  y={y - 6}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fontWeight={600}
+                  fill="var(--foreground)"
+                  className="tabular-nums"
+                >
+                  {d.value}
+                </text>
+              )}
+              {/* X label */}
+              <text
+                x={x + barWidth / 2}
+                y={height - 8}
+                textAnchor="middle"
+                fontSize={11}
+                fill="var(--muted-foreground)"
+              >
+                {d.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -129,12 +259,8 @@ export function TaskOverview({ tasks, className }: TaskOverviewProps) {
     [tasks],
   );
 
-  const statusAria = statusData
-    .map((d) => `${d.label} ${d.value}`)
-    .join(", ");
-  const priorityAria = priorityData
-    .map((d) => `${d.label} ${d.value}`)
-    .join(", ");
+  const statusAria = statusData.map((d) => `${d.label} ${d.value}`).join(", ");
+  const priorityAria = priorityData.map((d) => `${d.label} ${d.value}`).join(", ");
 
   return (
     <Card className={cn("h-full gap-0 p-5 sm:p-6", className)}>
@@ -152,134 +278,56 @@ export function TaskOverview({ tasks, className }: TaskOverviewProps) {
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {/* Donut: Tasks by Status */}
-            <ChartPanel
-              title="By status"
-              caption={`${totalTasks} total`}
-            >
+            <ChartPanel title="By status" caption={`${totalTasks} total`}>
               <div
-                className="relative h-[220px] w-full"
+                className="flex flex-col items-center"
                 role="img"
                 aria-label={`Tasks by status donut chart: ${statusAria}`}
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      dataKey="value"
-                      nameKey="label"
-                      innerRadius={56}
-                      outerRadius={84}
-                      paddingAngle={2}
-                      stroke="none"
-                      isAnimationActive
-                      animationDuration={700}
+                <DonutChart data={statusData} total={totalTasks} />
+                <ul className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+                  {statusData.map((d) => (
+                    <li
+                      key={`legend-status-${d.status}`}
+                      className="flex items-center gap-1.5 text-xs"
                     >
-                      {statusData.map((entry) => (
-                        <Cell key={`status-${entry.status}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={<ChartTooltip total={totalTasks} />}
-                      cursor={false}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-semibold tabular-nums">
-                    {totalTasks}
-                  </span>
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    tasks
-                  </span>
-                </div>
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: d.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="text-muted-foreground">{d.label}</span>
+                      <span className="font-medium tabular-nums">{d.value}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              {/* Custom legend */}
-              <ul className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
-                {statusData.map((d) => (
-                  <li
-                    key={`legend-status-${d.status}`}
-                    className="flex items-center gap-1.5 text-xs"
-                  >
-                    <span
-                      className="size-2.5 rounded-full"
-                      style={{ backgroundColor: d.color }}
-                      aria-hidden="true"
-                    />
-                    <span className="text-muted-foreground">{d.label}</span>
-                    <span className="font-medium tabular-nums">{d.value}</span>
-                  </li>
-                ))}
-              </ul>
             </ChartPanel>
 
             {/* Bar: Tasks by Priority */}
-            <ChartPanel
-              title="By priority"
-              caption="across all projects"
-            >
+            <ChartPanel title="By priority" caption="across all projects">
               <div
-                className="h-[220px] w-full"
                 role="img"
                 aria-label={`Tasks by priority bar chart: ${priorityAria}`}
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={priorityData}
-                    margin={{ top: 8, right: 8, bottom: 0, left: -18 }}
-                  >
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 12 }}
-                      dy={6}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 12 }}
-                      width={32}
-                    />
-                    <Tooltip
-                      content={<ChartTooltip total={totalTasks} />}
-                      cursor={{
-                        fill: "color-mix(in oklch, var(--brand) 8%, transparent)",
-                      }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      radius={[6, 6, 0, 0]}
-                      maxBarSize={56}
-                      isAnimationActive
-                      animationDuration={700}
+                <BarChart data={priorityData} total={totalTasks} />
+                <ul className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+                  {priorityData.map((d) => (
+                    <li
+                      key={`legend-priority-${d.priority}`}
+                      className="flex items-center gap-1.5 text-xs"
                     >
-                      {priorityData.map((entry) => (
-                        <Cell
-                          key={`priority-${entry.priority}`}
-                          fill={entry.color}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: d.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="text-muted-foreground">{d.label}</span>
+                      <span className="font-medium tabular-nums">{d.value}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
-                {priorityData.map((d) => (
-                  <li
-                    key={`legend-priority-${d.priority}`}
-                    className="flex items-center gap-1.5 text-xs"
-                  >
-                    <span
-                      className="size-2.5 rounded-full"
-                      style={{ backgroundColor: d.color }}
-                      aria-hidden="true"
-                    />
-                    <span className="text-muted-foreground">{d.label}</span>
-                    <span className="font-medium tabular-nums">{d.value}</span>
-                  </li>
-                ))}
-              </ul>
             </ChartPanel>
           </div>
         )}
