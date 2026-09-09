@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { AnimatedCounter } from "@/components/common/animated-counter";
@@ -38,11 +37,7 @@ export function StatsCard({
   className,
 }: StatsCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -2 }}
+    <div
       className={cn("h-full", className)}
     >
       <Card className="relative h-full gap-0 overflow-hidden p-5 shadow-soft transition-shadow hover:shadow-md">
@@ -89,6 +84,6 @@ export function StatsCard({
           )}
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }

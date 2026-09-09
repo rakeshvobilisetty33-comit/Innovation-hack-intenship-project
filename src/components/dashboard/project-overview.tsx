@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { ArrowRight, CalendarClock, ListTodo } from "lucide-react";
 import {
   Card,
@@ -77,15 +76,8 @@ export function ProjectOverview({
             const members = p.members ?? [];
             const extra = members.length - 4;
             return (
-              <motion.li
+              <li
                 key={p.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.25,
-                  delay: Math.min(i * 0.04, 0.2),
-                  ease: "easeOut",
-                }}
               >
                 <button
                   type="button"
@@ -145,7 +137,7 @@ export function ProjectOverview({
                     </div>
                   </div>
                 </button>
-              </motion.li>
+              </li>
             );
           })}
         </ul>

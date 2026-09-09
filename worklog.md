@@ -792,3 +792,32 @@ Stage Summary:
   - README, .env.example, .gitignore, deployment docs, seed script, demo account
 - Lint: clean. API + AI: verified. Browser preview: blocked by 4GB sandbox RAM (works on normal machines).
 - Demo login: alex@devflow.ai / password.
+
+---
+Task ID: final-fix
+Agent: orchestrator
+Task: Fix the browser preview (login error / OOM). Remove heavy deps from initial bundle, use production build + supervisor.
+
+Work Log:
+- Root cause: 4GB RAM sandbox could not run the Next.js dev server (Turbopack/webpack compiling the full client bundle) + chromium + in-memory MongoDB simultaneously. The dev server's per-request compilation spiked memory, killing the process.
+- Removed recharts (heaviest client dep, ~500KB) from the client bundle: replaced TaskOverview's donut + bar charts with pure SVG charts. The shadcn chart.tsx wrapper (which imports recharts) is not imported by anything, so recharts is tree-shaken out.
+- Removed framer-motion from the INITIAL bundle (page.tsx, AppShell, Sidebar, AuthShell, brand-panel, auth-mode-tabs, empty-state, page-transition) — replaced with CSS `animate-in` utilities. framer-motion remains in the lazy views (dashboard, projects, tasks, profile, settings) which compile on demand.
+- Removed framer-motion from the DASHBOARD view files (dashboard-view, stats-card, progress-card, recent-activity, project-overview) and replaced AnimatedCounter with a pure React/IntersectionObserver/rAF implementation (no framer-motion).
+- Switched to the PRODUCTION build (`next build` → `.next/standalone/server.js`) which pre-compiles all chunks and uses ~256MB heap (vs ~1.8GB for the dev server). Copied `.next/static` and `public` to the standalone dir.
+- Wrote a resilient supervisor (prod-supervisor.sh) that restarts the server if it dies.
+- Verified end-to-end with Agent Browser:
+  1. Auth page renders ("DevFlow AI — Plan. Track. Ship — with AI on your side") ✓
+  2. Login with demo credentials (alex@devflow.ai / password) → dashboard loads ✓
+  3. Dashboard: "Good morning, Alex", Total Projects 6, Active 3, By status chart, By priority chart, top projects ✓
+  4. Navigate to Projects → "Plan, track and ship your work" with project cards ✓
+  5. Navigate to Tasks → task list loads ✓
+  6. AI dialog: opened on Projects page, "Generate Tasks with AI", generated 8 tasks for "Build an e-commerce website" (Design homepage, Build navigation, Create product listing, ...) ✓
+  7. Theme toggle dark ⇄ light ✓
+  8. Server stays alive (200) throughout ✓
+- Lint: clean (0 errors). API: all endpoints verified (login, dashboard stats, AI generate 3 tasks).
+
+Stage Summary:
+- The browser preview now WORKS. The "login error" was caused by the dev server getting OOM-killed during page load; switching to the production build + supervisor fixed it.
+- The app is fully functional: login, dashboard with charts, projects, tasks, AI task generation, theme toggle — all verified in the browser.
+- Stack: MongoDB + Mongoose + JWT + bcrypt + Next.js Route Handlers + React + Tailwind + z-ai-web-dev-sdk (AI).
+- Demo login: alex@devflow.ai / password.

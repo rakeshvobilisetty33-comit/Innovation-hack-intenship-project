@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export type AuthMode = "login" | "register";
@@ -51,11 +50,9 @@ export function AuthModeTabs({ mode, onModeChange, className }: AuthModeTabsProp
           >
             {tab.label}
             {active && (
-              <motion.span
-                layoutId="auth-mode-pill"
+              <span
                 aria-hidden
                 className="absolute inset-0 -z-10 rounded-lg bg-background shadow-soft ring-1 ring-border"
-                transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             )}
           </button>

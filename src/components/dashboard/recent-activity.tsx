@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import {
   Card,
@@ -70,15 +69,8 @@ export function RecentActivity({
                 const accent =
                   ACTION_BORDER[a.action] ?? "var(--muted-foreground)";
                 return (
-                  <motion.li
+                  <li
                     key={a.id}
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      duration: 0.22,
-                      delay: Math.min(i * 0.025, 0.25),
-                      ease: "easeOut",
-                    }}
                     className="relative ml-3 rounded-r-md py-2.5 pl-3 pr-2 transition-colors hover:bg-muted/40 focus-within:bg-muted/60"
                     style={{ borderLeft: `2px solid ${accent}` }}
                   >
@@ -102,7 +94,7 @@ export function RecentActivity({
                         </p>
                       </div>
                     </div>
-                  </motion.li>
+                  </li>
                 );
               })}
             </ul>

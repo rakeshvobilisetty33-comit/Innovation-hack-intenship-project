@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
-// Shared page transition wrapper. Respects reduced motion.
+// Shared page transition wrapper (CSS-based, no framer-motion).
 export function PageTransition({
   children,
   className,
@@ -12,22 +11,14 @@ export function PageTransition({
   className?: string;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
+    <div className={"animate-in fade-in-0 slide-in-from-bottom-1 duration-300 " + (className ?? "")}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 export function AnimateList({ children }: { children: React.ReactNode }) {
-  return (
-    <AnimatePresence initial={false}>{children}</AnimatePresence>
-  );
+  return <>{children}</>;
 }
 
 export function FadeIn({
@@ -40,13 +31,11 @@ export function FadeIn({
   className?: string;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut", delay }}
-      className={className}
+    <div
+      className={"animate-in fade-in-0 duration-300 " + (className ?? "")}
+      style={{ animationDelay: `${delay}ms` }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

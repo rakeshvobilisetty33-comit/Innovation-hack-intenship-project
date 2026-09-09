@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import {
   Activity,
   CalendarDays,
@@ -220,10 +219,7 @@ export default function DashboardView() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       {/* Greeting header */}
-      <motion.header
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: "easeOut" }}
+      <header
         className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"
       >
         <div>
@@ -241,7 +237,7 @@ export default function DashboardView() {
             Here&apos;s what&apos;s happening across your workspace today.
           </p>
         </div>
-      </motion.header>
+      </header>
 
       {loading ? (
         <DashboardSkeleton />

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -63,11 +62,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               )}
             >
               {active && (
-                <motion.span
-                  layoutId="sidebar-active"
-                  className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand"
-                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                />
+                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand" />
               )}
               <Icon className="h-[1.05rem] w-[1.05rem] shrink-0" />
               <span className="flex-1 text-left">{item.label}</span>

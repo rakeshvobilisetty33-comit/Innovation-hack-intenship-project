@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { FolderKanban, ListChecks, Sparkles, Check } from "lucide-react";
 import { Logo } from "@/components/common/logo";
 import { ThemeToggle } from "@/components/common/theme-toggle";
@@ -63,17 +62,13 @@ export function BrandPanel({ className }: { className?: string }) {
         className="bg-grid absolute inset-0 -z-10 opacity-50 [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_75%)]"
       />
       {/* Animated glow */}
-      <motion.div
+      <div
         aria-hidden
         className="absolute -right-24 -top-24 -z-10 h-[28rem] w-[28rem] rounded-full bg-brand/20 blur-3xl"
-        animate={{ opacity: [0.25, 0.45, 0.25], scale: [1, 1.08, 1] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div
+      <div
         aria-hidden
         className="absolute -bottom-32 -left-16 -z-10 h-72 w-72 rounded-full bg-chart-2/15 blur-3xl"
-        animate={{ opacity: [0.15, 0.3, 0.15], scale: [1, 1.12, 1] }}
-        transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
       />
 
       {/* Top-right theme toggle */}
@@ -83,48 +78,32 @@ export function BrandPanel({ className }: { className?: string }) {
 
       {/* Main content */}
       <div className="relative z-[1] flex h-full flex-col justify-between p-10 xl:p-14">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        <div
         >
           <Logo size={40} />
-        </motion.div>
+        </div>
 
         <div className="max-w-xl">
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+          <h1
             className="text-balance text-3xl font-semibold leading-[1.1] tracking-tight xl:text-[2.6rem]"
           >
             Plan. Track. Ship —{" "}
             <span className="text-gradient-brand">with AI on your side.</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+          <p
             className="mt-4 max-w-md text-pretty text-base leading-relaxed text-muted-foreground"
           >
             DevFlow AI brings project planning, task tracking and AI-assisted
             breakdowns together — so your team can move from idea to shipped
             without the busywork.
-          </motion.p>
+          </p>
 
           {/* Feature bullets */}
           <ul className="mt-8 space-y-3.5">
             {FEATURES.map((f, i) => (
-              <motion.li
+              <li
                 key={f.title}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  duration: 0.4,
-                  ease: [0.22, 1, 0.36, 1],
-                  delay: 0.18 + i * 0.07,
-                }}
                 className="flex items-start gap-3"
               >
                 <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand/20 bg-brand/10 text-brand">
@@ -136,16 +115,13 @@ export function BrandPanel({ className }: { className?: string }) {
                     {f.description}
                   </p>
                 </div>
-              </motion.li>
+              </li>
             ))}
           </ul>
         </div>
 
         {/* Faux mini dashboard preview + trusted-by stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.32 }}
+        <div
           className="mt-10"
         >
           <div className="rounded-2xl border border-border bg-card/70 p-4 shadow-soft backdrop-blur">
@@ -188,14 +164,7 @@ export function BrandPanel({ className }: { className?: string }) {
                     <span className="font-medium tabular-nums">{p.value}%</span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${p.value}%` }}
-                      transition={{
-                        duration: 0.9,
-                        ease: [0.22, 1, 0.36, 1],
-                        delay: 0.5,
-                      }}
+                    <div
                       className={cn(
                         "h-full rounded-full",
                         p.tone === "brand" ? "bg-brand" : "bg-chart-2",
@@ -221,7 +190,7 @@ export function BrandPanel({ className }: { className?: string }) {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -230,10 +199,7 @@ export function BrandPanel({ className }: { className?: string }) {
 /** Compact brand header — shown above the auth card on mobile (<lg). */
 export function MobileBrandHeader() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    <div
       className="mb-7 flex flex-col items-center gap-3 text-center"
     >
       <Logo size={36} />
@@ -247,6 +213,6 @@ export function MobileBrandHeader() {
         <Check className="h-3.5 w-3.5 text-brand" aria-hidden />
         Free during beta
       </div>
-    </motion.div>
+    </div>
   );
 }

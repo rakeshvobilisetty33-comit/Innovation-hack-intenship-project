@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import {
   Card,
@@ -107,7 +106,7 @@ export function ProgressCard({
                 stroke="var(--muted)"
                 strokeWidth={STROKE}
               />
-              <motion.circle
+              <circle
                 cx={RING_SIZE / 2}
                 cy={RING_SIZE / 2}
                 r={R}
@@ -116,9 +115,6 @@ export function ProgressCard({
                 strokeWidth={STROKE}
                 strokeLinecap="round"
                 strokeDasharray={CIRC}
-                initial={{ strokeDashoffset: CIRC }}
-                animate={{ strokeDashoffset: offset }}
-                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
