@@ -66,8 +66,8 @@ export function serializeUser(user: UserDoc) {
     avatar: user.avatar ?? null,
     bio: user.bio ?? null,
     role: user.role ?? null,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
+    createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : new Date().toISOString(),
   };
 }
 
@@ -80,8 +80,8 @@ export function serializeProject(project: ProjectDoc) {
     ownerName: project.owner?.name ?? null,
     status: project.status,
     progress: project.progress,
-    createdAt: project.createdAt.toISOString(),
-    updatedAt: project.updatedAt.toISOString(),
+    createdAt: project.createdAt ? new Date(project.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: project.updatedAt ? new Date(project.updatedAt).toISOString() : new Date().toISOString(),
   };
 }
 
@@ -107,9 +107,9 @@ export function serializeTask(task: TaskDoc) {
     assignedName: task.assignee?.name ?? null,
     status: task.status,
     priority: task.priority,
-    dueDate: task.dueDate ? task.dueDate.toISOString() : null,
-    createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString(),
+    dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+    createdAt: task.createdAt ? new Date(task.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: task.updatedAt ? new Date(task.updatedAt).toISOString() : new Date().toISOString(),
   };
 }
 
@@ -122,7 +122,7 @@ export function serializeActivity(activity: ActivityDoc) {
     entityType: activity.entityType,
     entityId: activity.entityId,
     description: activity.description,
-    createdAt: activity.createdAt.toISOString(),
+    createdAt: activity.createdAt ? new Date(activity.createdAt).toISOString() : new Date().toISOString(),
   };
 }
 

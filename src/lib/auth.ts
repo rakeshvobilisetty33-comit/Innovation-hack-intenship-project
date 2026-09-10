@@ -68,7 +68,10 @@ export async function getAuthUser(req: NextRequest): Promise<UserDoc | null> {
 }
 
 // Strips sensitive fields before sending to the client.
-export function sanitizeUser(user: UserDoc) {
+export function sanitizeUser(user: UserDoc | null) {
+  if (!user) {
+    throw new Error("User not found");
+  }
   return {
     id: user._id.toString(),
     name: user.name,
@@ -76,7 +79,7 @@ export function sanitizeUser(user: UserDoc) {
     avatar: user.avatar ?? null,
     bio: user.bio ?? null,
     role: user.role ?? null,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
+    createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: user.updatedAt ? new Date(user.updatedAt).toISOString() : new Date().toISOString(),
   };
 }

@@ -57,6 +57,9 @@ export async function POST(req: NextRequest) {
     // Re-fetch as a lean doc so we can pass it to sanitizeUser safely
     // (the schema has `select:false` on password, so lean omits it).
     const user = await User.findById(createdDoc._id).lean();
+    if (!user) {
+      return serverError("Failed to create user");
+    }
 
     const token = signToken({ sub: String(createdDoc._id), email: emailLower });
 
