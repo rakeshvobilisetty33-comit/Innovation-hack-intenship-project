@@ -67,3 +67,5 @@ tests/
 db/
 *.db
 WORKLOG_TODO
+
+.vercel

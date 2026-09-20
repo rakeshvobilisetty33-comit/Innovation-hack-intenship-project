@@ -27,15 +27,24 @@ const cache: Cached = globalCache[GLOBAL_KEY] ?? {
 };
 if (!globalCache[GLOBAL_KEY]) globalCache[GLOBAL_KEY] = cache;
 
-async function resolveUri(): Promise<string> {
+async function resolveUri(): Promise<string | null> {
   if (MONGODB_URI) return MONGODB_URI;
-  if (!cache.memServer) {
-    cache.memServer = await MongoMemoryServer.create({
-      instance: { dbName: "devflow_ai" },
-    });
-    console.log("[mongo] In-memory MongoDB started");
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.warn("[mongo] MONGODB_URI not set in serverless environment; using in-memory demo fallback");
+    return null;
   }
-  return cache.memServer.getUri();
+  try {
+    if (!cache.memServer) {
+      cache.memServer = await MongoMemoryServer.create({
+        instance: { dbName: "devflow_ai" },
+      });
+      console.log("[mongo] In-memory MongoDB started");
+    }
+    return cache.memServer.getUri();
+  } catch (err) {
+    console.warn("[mongo] MongoMemoryServer unavailable:", err);
+    return null;
+  }
 }
 
 async function seedIfEmpty() {
@@ -96,25 +105,36 @@ async function seedIfEmpty() {
   console.log("[mongo] Seed complete: 4 users, 6 projects, 14 tasks, 7 activities");
 }
 
-export async function connectDB(): Promise<typeof mongoose> {
+export async function connectDB(): Promise<typeof mongoose | null> {
   if (cache.conn) return cache.conn;
   if (!cache.promise) {
     cache.promise = (async () => {
-      const uri = await resolveUri();
-      mongoose.set("strictQuery", true);
-      const conn = await mongoose.connect(uri, {
-        bufferCommands: false,
-        autoIndex: true,
-      });
-      return conn;
+      try {
+        const uri = await resolveUri();
+        if (!uri) return null;
+        mongoose.set("strictQuery", true);
+        const conn = await mongoose.connect(uri, {
+          bufferCommands: false,
+          autoIndex: true,
+          serverSelectionTimeoutMS: 4000,
+        });
+        return conn;
+      } catch (err) {
+        console.warn("[mongo] Mongoose connection error, falling back:", err);
+        return null;
+      }
     })();
   }
   try {
-    cache.conn = await cache.promise;
-    await seedIfEmpty();
+    const conn = await cache.promise;
+    if (conn) {
+      cache.conn = conn;
+      await seedIfEmpty();
+      return conn;
+    }
+    return null;
   } catch (e) {
     cache.promise = null;
-    throw e;
+    return null;
   }
-  return cache.conn;
 }

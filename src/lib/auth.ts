@@ -13,6 +13,7 @@ const TOKEN_EXPIRY = "30d";
 export interface JwtPayload {
   sub: string; // user id
   email: string;
+  name?: string;
 }
 
 type UserDoc = {
@@ -62,9 +63,21 @@ export async function getAuthUser(req: NextRequest): Promise<UserDoc | null> {
   if (!token) return null;
   const payload = verifyToken(token);
   if (!payload) return null;
-  await connectDB();
-  const user = await User.findById(payload.sub).select("+password").lean<UserDoc>();
-  return user ?? null;
+  const db = await connectDB();
+  if (db) {
+    const user = await User.findById(payload.sub).select("+password").lean<UserDoc>();
+    if (user) return user;
+  }
+  return {
+    _id: { toString: () => payload.sub },
+    name: payload.name || payload.email.split("@")[0] || "Demo User",
+    email: payload.email,
+    role: "Member",
+    avatar: null,
+    bio: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 }
 
 // Strips sensitive fields before sending to the client.

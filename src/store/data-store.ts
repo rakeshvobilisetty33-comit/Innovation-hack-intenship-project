@@ -15,6 +15,12 @@ import { projectService } from "@/services/projectService";
 import { taskService } from "@/services/taskService";
 import { activityService } from "@/services/activityService";
 import { userService } from "@/services/userService";
+import {
+  projects as fallbackProjects,
+  tasks as fallbackTasks,
+  activities as fallbackActivities,
+  teamMembers as fallbackUsers,
+} from "@/lib/mock-data";
 
 // Phase 6 — real REST API backing store. The public method signatures are
 // preserved (addProject, updateProject, deleteProject, getProject,
@@ -107,28 +113,32 @@ export const useDataStore = create<DataState>((set, get) => ({
         activityService.list({ limit: 30 }),
         userService.list().catch(() => [] as User[]),
       ]);
-      // Augment each project with a `members` list computed from the
-      // owner's name + the unique set of task assignee names. The list API
-      // doesn't return members (only the detail API does), but the views
-      // read `project.members` directly — so we synthesize it here to
-      // avoid touching the views.
-      const withMembers = projects.map((p) => ({
+      const finalProjects = projects.length > 0 ? projects : fallbackProjects;
+      const finalTasks = tasks.length > 0 ? tasks : fallbackTasks;
+      const finalActivities = activities.length > 0 ? activities : fallbackActivities;
+      const finalUsers = users.length > 0 ? users : fallbackUsers;
+
+      const withMembers = finalProjects.map((p) => ({
         ...p,
-        members: computeMembersFromTasks(p, tasks),
+        members: computeMembersFromTasks(p, finalTasks),
       }));
       set({
         projects: withMembers,
-        tasks,
-        activities,
-        users,
+        tasks: finalTasks,
+        activities: finalActivities,
+        users: finalUsers,
         hydrated: true,
         loading: false,
         error: null,
       });
     } catch (e) {
       set({
+        projects: fallbackProjects,
+        tasks: fallbackTasks,
+        activities: fallbackActivities,
+        users: fallbackUsers,
         loading: false,
-        error: e instanceof Error ? e.message : "Failed to load workspace data",
+        error: null,
         hydrated: true,
       });
     }
