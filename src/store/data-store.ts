@@ -94,6 +94,26 @@ function resolveAssigneeId(users: User[], assignedTo?: string): string | null {
   return null;
 }
 
+function getActiveUser(): { id: string; name: string } {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("devflow-auth");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.state?.user) {
+          return {
+            id: parsed.state.user.id || "user_demo_1",
+            name: parsed.state.user.name || "Alex Rivera",
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return { id: "user_demo_1", name: "Alex Rivera" };
+}
+
 export const useDataStore = create<DataState>((set, get) => ({
   projects: [],
   tasks: [],
@@ -145,25 +165,45 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   addProject: async (input, ownerName) => {
+    const activeUser = getActiveUser();
+    const resolvedOwner = ownerName ?? activeUser.name;
+
     const localProject: Project = {
       id: "proj_local_" + Date.now(),
       name: input.name,
       description: input.description ?? "",
-      owner: "user_demo_1",
-      ownerName: ownerName ?? "Alex Rivera",
+      owner: activeUser.id,
+      ownerName: resolvedOwner,
       status: input.status ?? "planning",
       progress: input.progress ?? 0,
-      members: ownerName ? [ownerName] : ["Alex Rivera"],
+      members: [resolvedOwner],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    useDataStore.setState((s) => ({ projects: [localProject, ...s.projects] }));
+    const newAct: Activity = {
+      id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      user: activeUser.id,
+      userName: resolvedOwner,
+      action: "created",
+      entityType: "project",
+      entityId: localProject.id,
+      description: `created project “${localProject.name}”`,
+      createdAt: new Date().toISOString(),
+    };
+
+    useDataStore.setState((s) => ({
+      projects: [localProject, ...s.projects],
+      activities: [newAct, ...s.activities],
+    }));
 
     try {
       const created = await projectService.create(input);
       if (created && created.id) {
-        const augmented = { ...created, members: created.ownerName ? [created.ownerName] : [ownerName ?? "Alex Rivera"] };
+        const augmented = {
+          ...created,
+          members: created.ownerName ? [created.ownerName] : [resolvedOwner],
+        };
         useDataStore.setState((s) => ({
           projects: s.projects.map((p) => (p.id === localProject.id ? augmented : p)),
         }));
@@ -176,16 +216,36 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   updateProject: async (id, patch) => {
-    useDataStore.setState((s) => ({
-      projects: s.projects.map((p) => {
-        if (p.id !== id) return p;
-        return {
-          ...p,
-          ...patch,
-          updatedAt: new Date().toISOString(),
-        };
-      }),
-    }));
+    const activeUser = getActiveUser();
+    useDataStore.setState((s) => {
+      const target = s.projects.find((p) => p.id === id);
+      const name = patch.name || target?.name || "project";
+      const newAct: Activity = {
+        id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        user: activeUser.id,
+        userName: activeUser.name,
+        action: "updated",
+        entityType: "project",
+        entityId: id,
+        description:
+          patch.progress !== undefined
+            ? `updated progress on “${name}” to ${patch.progress}%`
+            : `updated project “${name}”`,
+        createdAt: new Date().toISOString(),
+      };
+
+      return {
+        projects: s.projects.map((p) => {
+          if (p.id !== id) return p;
+          return {
+            ...p,
+            ...patch,
+            updatedAt: new Date().toISOString(),
+          };
+        }),
+        activities: [newAct, ...s.activities],
+      };
+    });
 
     try {
       const updated = await projectService.update(id, patch);
@@ -204,10 +264,27 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   deleteProject: async (id) => {
-    useDataStore.setState((s) => ({
-      projects: s.projects.filter((p) => p.id !== id),
-      tasks: s.tasks.filter((t) => t.project !== id),
-    }));
+    const activeUser = getActiveUser();
+    useDataStore.setState((s) => {
+      const target = s.projects.find((p) => p.id === id);
+      const name = target?.name || "project";
+      const newAct: Activity = {
+        id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        user: activeUser.id,
+        userName: activeUser.name,
+        action: "deleted",
+        entityType: "project",
+        entityId: id,
+        description: `deleted project “${name}”`,
+        createdAt: new Date().toISOString(),
+      };
+
+      return {
+        projects: s.projects.filter((p) => p.id !== id),
+        tasks: s.tasks.filter((t) => t.project !== id),
+        activities: [newAct, ...s.activities],
+      };
+    });
 
     try {
       await projectService.remove(id);
@@ -223,9 +300,10 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   addTask: async (input, assignedName, projectName) => {
     const { users, projects } = get();
+    const activeUser = getActiveUser();
     const assigneeId = resolveAssigneeId(users, input.assignedTo);
     const targetProject = projects.find((p) => p.id === input.project);
-    const resolvedProjectName = projectName || targetProject?.name || "Project";
+    const resolvedProjectName = projectName || targetProject?.name || "";
     const resolvedAssigneeName =
       assignedName ||
       users.find((u) => u.id === assigneeId || u.name === input.assignedTo)?.name ||
@@ -237,7 +315,7 @@ export const useDataStore = create<DataState>((set, get) => ({
       title: input.title,
       description: input.description ?? "",
       project: input.project,
-      projectName: resolvedProjectName,
+      projectName: resolvedProjectName || undefined,
       assignedTo: assigneeId ?? (input.assignedTo ? String(input.assignedTo) : null),
       assignedName: resolvedAssigneeName,
       status: input.status ?? "todo",
@@ -247,11 +325,23 @@ export const useDataStore = create<DataState>((set, get) => ({
       updatedAt: new Date().toISOString(),
     };
 
+    const taskActivity: Activity = {
+      id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      user: activeUser.id,
+      userName: resolvedAssigneeName || activeUser.name,
+      action: "created",
+      entityType: "task",
+      entityId: localTask.id,
+      description: `created task “${localTask.title}”${resolvedProjectName ? ` in ${resolvedProjectName}` : ""}`,
+      createdAt: new Date().toISOString(),
+    };
+
     // Optimistically update state immediately!
     useDataStore.setState((s) => {
       const tasks = [localTask, ...s.tasks];
       return {
         tasks,
+        activities: [taskActivity, ...s.activities],
         projects: recomputeMembersFor(s.projects, tasks, localTask.project),
       };
     });
@@ -272,7 +362,7 @@ export const useDataStore = create<DataState>((set, get) => ({
             t.id === localTask.id
               ? {
                   ...created,
-                  projectName: resolvedProjectName,
+                  projectName: resolvedProjectName || created.projectName,
                   assignedName: resolvedAssigneeName ?? created.assignedName,
                 }
               : t,
@@ -289,6 +379,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   updateTask: async (id, patch) => {
     const { users } = get();
+    const activeUser = getActiveUser();
     const assigneeId = resolveAssigneeId(users, patch.assignedTo);
 
     useDataStore.setState((s) => {
@@ -308,8 +399,47 @@ export const useDataStore = create<DataState>((set, get) => ({
           updatedAt: new Date().toISOString(),
         };
       });
+
+      let action = "updated";
+      let description = `updated task “${patch.title || old?.title || "task"}”`;
+
+      if (patch.status && old && patch.status !== old.status) {
+        if (patch.status === "done") {
+          action = "completed";
+          description = `completed task “${old.title}”`;
+        } else {
+          action = "updated";
+          const statusLabel =
+            patch.status === "in-progress"
+              ? "In Progress"
+              : patch.status === "todo"
+              ? "To Do"
+              : patch.status;
+          description = `moved “${old.title}” to ${statusLabel}`;
+        }
+      } else if (patch.priority && old && patch.priority !== old.priority) {
+        action = "updated";
+        const pLabel =
+          patch.priority.charAt(0).toUpperCase() + patch.priority.slice(1);
+        description = `changed priority of “${old.title}” to ${pLabel}`;
+      } else if (patch.title && old && patch.title !== old.title) {
+        description = `renamed task “${old.title}” to “${patch.title}”`;
+      }
+
+      const newAct: Activity = {
+        id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        user: activeUser.id,
+        userName: old?.assignedName || activeUser.name,
+        action,
+        entityType: "task",
+        entityId: id,
+        description,
+        createdAt: new Date().toISOString(),
+      };
+
       return {
         tasks,
+        activities: [newAct, ...s.activities],
         projects: recomputeMembersForMany(s.projects, tasks, [...affected]),
       };
     });
@@ -333,11 +463,35 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   setTaskStatus: async (id, status) => {
-    useDataStore.setState((s) => ({
-      tasks: s.tasks.map((t) =>
-        t.id === id ? { ...t, status, updatedAt: new Date().toISOString() } : t,
-      ),
-    }));
+    const activeUser = getActiveUser();
+
+    useDataStore.setState((s) => {
+      const task = s.tasks.find((t) => t.id === id);
+      const title = task?.title || "task";
+      const isDone = status === "done";
+      const statusLabel =
+        status === "in-progress" ? "In Progress" : status === "todo" ? "To Do" : status;
+
+      const act: Activity = {
+        id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        user: activeUser.id,
+        userName: task?.assignedName || activeUser.name,
+        action: isDone ? "completed" : "updated",
+        entityType: "task",
+        entityId: id,
+        description: isDone
+          ? `completed task “${title}”`
+          : `moved “${title}” to ${statusLabel}`,
+        createdAt: new Date().toISOString(),
+      };
+
+      return {
+        tasks: s.tasks.map((t) =>
+          t.id === id ? { ...t, status, updatedAt: new Date().toISOString() } : t,
+        ),
+        activities: [act, ...s.activities],
+      };
+    });
 
     try {
       await taskService.update(id, { status });
@@ -348,12 +502,27 @@ export const useDataStore = create<DataState>((set, get) => ({
   },
 
   deleteTask: async (id) => {
+    const activeUser = getActiveUser();
     const prev = get().tasks.find((t) => t.id === id);
+
     useDataStore.setState((s) => {
       const tasks = s.tasks.filter((t) => t.id !== id);
       const affected = prev ? [prev.project] : [];
+
+      const act: Activity = {
+        id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        user: activeUser.id,
+        userName: activeUser.name,
+        action: "deleted",
+        entityType: "task",
+        entityId: id,
+        description: `deleted task “${prev?.title || "task"}”`,
+        createdAt: new Date().toISOString(),
+      };
+
       return {
         tasks,
+        activities: [act, ...s.activities],
         projects: recomputeMembersForMany(s.projects, tasks, affected),
       };
     });
@@ -396,10 +565,21 @@ export const useDataStore = create<DataState>((set, get) => ({
     };
   },
 
-  // The server logs activities on every mutation; this is a no-op kept for
-  // view compatibility (older code paths may still call it).
-  logActivity: () => {
-    /* no-op — activities come from /api/activities */
+  logActivity: (a) => {
+    const activeUser = getActiveUser();
+    const newAct: Activity = {
+      id: "act_local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      user: a.user || activeUser.id,
+      userName: a.userName || activeUser.name,
+      action: a.action || "updated",
+      entityType: a.entityType || "task",
+      entityId: a.entityId || "",
+      description: a.description || "",
+      createdAt: new Date().toISOString(),
+    };
+    useDataStore.setState((s) => ({
+      activities: [newAct, ...s.activities].slice(0, 40),
+    }));
   },
 }));
 
@@ -407,7 +587,26 @@ export const useDataStore = create<DataState>((set, get) => ({
 async function refreshActivities() {
   try {
     const acts = await activityService.list({ limit: 30 });
-    useDataStore.setState({ activities: acts });
+    if (acts && acts.length > 0) {
+      useDataStore.setState((s) => {
+        const localOnly = s.activities.filter(
+          (a) => a.id.startsWith("act_local_") || !acts.some((srv) => srv.id === a.id),
+        );
+        const combined = [...localOnly, ...acts];
+        const seen = new Set<string>();
+        const unique: Activity[] = [];
+        for (const item of combined) {
+          if (!seen.has(item.id)) {
+            seen.add(item.id);
+            unique.push(item);
+          }
+        }
+        unique.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        return { activities: unique.slice(0, 40) };
+      });
+    }
   } catch {
     // ignore — background refresh
   }

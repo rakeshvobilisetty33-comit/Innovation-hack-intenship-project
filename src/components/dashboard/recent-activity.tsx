@@ -65,25 +65,28 @@ export function RecentActivity({
             </p>
           ) : (
             <ul className="space-y-1 pb-2">
-              {list.map((a, i) => {
+              {list.map((a) => {
                 const accent =
                   ACTION_BORDER[a.action] ?? "var(--muted-foreground)";
+                const displayName =
+                  a.userName ||
+                  (a.user && !a.user.startsWith("user_") ? a.user : "You");
                 return (
                   <li
                     key={a.id}
-                    className="relative ml-3 rounded-r-md py-2.5 pl-3 pr-2 transition-colors hover:bg-muted/40 focus-within:bg-muted/60"
+                    className="relative ml-3 rounded-r-md py-2.5 pl-3 pr-2 transition-all duration-200 hover:bg-muted/40 focus-within:bg-muted/60 animate-in fade-in-50"
                     style={{ borderLeft: `2px solid ${accent}` }}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="size-8 shrink-0">
                         <AvatarFallback className="bg-muted text-[11px] font-medium text-muted-foreground">
-                          {getInitials(a.userName ?? "U")}
+                          {getInitials(displayName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm leading-snug">
                           <span className="font-semibold">
-                            {a.userName ?? "Someone"}
+                            {displayName}
                           </span>{" "}
                           <span className="text-muted-foreground">
                             {a.description}

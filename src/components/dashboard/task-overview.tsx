@@ -157,25 +157,39 @@ function BarChart({
           />
         ))}
         {data.map((d, i) => {
-          const h = (d.value / max) * (chartH - 16);
+          const rawH = (d.value / max) * (chartH - 16);
+          const h = d.value > 0 ? Math.max(rawH, 4) : 0;
           const x = 8 + i * (barWidth + gap);
           const y = chartH - h + 4;
           return (
             <g
-              key={i}
+              key={d.label}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
               style={{ cursor: "pointer" }}
             >
+              {/* Subtle background track */}
               <rect
                 x={x}
-                y={y}
+                y={8}
                 width={barWidth}
-                height={h}
+                height={chartH - 4}
+                rx={6}
+                fill="color-mix(in oklch, var(--muted-foreground) 4%, transparent)"
+              />
+              {/* Animated active bar */}
+              <rect
+                x={x}
+                y={d.value > 0 ? y : chartH + 2}
+                width={barWidth}
+                height={d.value > 0 ? h : 2}
                 rx={6}
                 fill={d.color}
                 opacity={hover === null || hover === i ? 1 : 0.45}
-                style={{ transition: "opacity 120ms ease" }}
+                style={{
+                  transition:
+                    "height 350ms cubic-bezier(0.4, 0, 0.2, 1), y 350ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms ease",
+                }}
               />
               {/* Value label on top (when hovered or always for non-zero) */}
               {(hover === i || d.value > 0) && (
@@ -186,7 +200,10 @@ function BarChart({
                   fontSize={11}
                   fontWeight={600}
                   fill="var(--foreground)"
-                  className="tabular-nums"
+                  className="tabular-nums select-none"
+                  style={{
+                    transition: "y 350ms cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
                 >
                   {d.value}
                 </text>
@@ -198,6 +215,7 @@ function BarChart({
                 textAnchor="middle"
                 fontSize={11}
                 fill="var(--muted-foreground)"
+                className="select-none"
               >
                 {d.label}
               </text>
