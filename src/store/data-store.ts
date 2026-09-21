@@ -21,6 +21,7 @@ import {
   activities as fallbackActivities,
   teamMembers as fallbackUsers,
 } from "@/lib/mock-data";
+import { useNotificationStore } from "@/store/notification-store";
 
 // Phase 6 — real REST API backing store. The public method signatures are
 // preserved (addProject, updateProject, deleteProject, getProject,
@@ -198,6 +199,18 @@ export const useDataStore = create<DataState>((set, get) => ({
     }));
 
     try {
+      useNotificationStore.getState().addNotification({
+        title: "Project Created",
+        message: `Project “${localProject.name}” has been created.`,
+        type: "project",
+        targetView: "projects",
+        targetId: localProject.id,
+      });
+    } catch {
+      // ignore
+    }
+
+    try {
       const created = await projectService.create(input);
       if (created && created.id) {
         const augmented = {
@@ -347,6 +360,18 @@ export const useDataStore = create<DataState>((set, get) => ({
     });
 
     try {
+      useNotificationStore.getState().addNotification({
+        title: "New Task Created",
+        message: `“${localTask.title}” was created${resolvedProjectName ? ` in ${resolvedProjectName}` : ""}.`,
+        type: "task",
+        targetView: "tasks",
+        targetId: localTask.id,
+      });
+    } catch {
+      // ignore
+    }
+
+    try {
       const created = await taskService.create({
         title: input.title,
         description: input.description ?? "",
@@ -445,6 +470,18 @@ export const useDataStore = create<DataState>((set, get) => ({
     });
 
     try {
+      useNotificationStore.getState().addNotification({
+        title: action === "completed" ? "Task Completed" : "Task Updated",
+        message: description,
+        type: action === "completed" ? "success" : "info",
+        targetView: "tasks",
+        targetId: id,
+      });
+    } catch {
+      // ignore
+    }
+
+    try {
       const apiPatch: Record<string, unknown> = {};
       if (patch.title !== undefined) apiPatch.title = patch.title;
       if (patch.description !== undefined) apiPatch.description = patch.description;
@@ -492,6 +529,18 @@ export const useDataStore = create<DataState>((set, get) => ({
         activities: [act, ...s.activities],
       };
     });
+
+    try {
+      useNotificationStore.getState().addNotification({
+        title: isDone ? "Task Completed" : "Task Status Updated",
+        message: isDone ? `“${title}” was marked as completed!` : `“${title}” moved to ${statusLabel}.`,
+        type: isDone ? "success" : "task",
+        targetView: "tasks",
+        targetId: id,
+      });
+    } catch {
+      // ignore
+    }
 
     try {
       await taskService.update(id, { status });

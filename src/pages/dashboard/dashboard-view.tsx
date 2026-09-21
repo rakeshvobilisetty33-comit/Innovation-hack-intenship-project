@@ -220,7 +220,7 @@ export default function DashboardView() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       {/* Greeting header */}
       <header
-        className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between"
+        className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between animate-fade-in-up"
       >
         <div>
           <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -261,7 +261,7 @@ export default function DashboardView() {
           {/* Stat cards row */}
           <section
             aria-label="Key statistics"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 animate-fade-in-up stagger-1"
           >
             <StatsCard
               icon={<FolderKanban className="size-5" />}
@@ -330,7 +330,7 @@ export default function DashboardView() {
           {/* Progress + Quick actions row */}
           <section
             aria-label="Progress and quick actions"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 animate-fade-in-up stagger-2"
           >
             <ProgressCard
               className="sm:col-span-2 xl:col-span-2"
@@ -347,7 +347,7 @@ export default function DashboardView() {
           {/* Charts + Activity row */}
           <section
             aria-label="Tasks analytics and recent activity"
-            className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-4 lg:grid-cols-3 animate-fade-in-up stagger-3"
           >
             <TaskOverview tasks={tasks} className="lg:col-span-2" />
             <RecentActivity
@@ -363,7 +363,7 @@ export default function DashboardView() {
           </section>
 
           {/* Project overview */}
-          <section aria-label="Top projects">
+          <section aria-label="Top projects" className="animate-fade-in-up stagger-4">
             <ProjectOverview
               projects={projects}
               onOpenProject={openProject}

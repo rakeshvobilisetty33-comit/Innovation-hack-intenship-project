@@ -168,7 +168,7 @@ export default function ProjectsView() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 animate-fade-in-up">
       {/* Sub-toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button onClick={openCreate} className="w-full sm:w-auto">

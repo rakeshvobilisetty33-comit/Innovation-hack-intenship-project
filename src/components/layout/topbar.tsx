@@ -4,6 +4,7 @@ import * as React from "react";
 import { Bell, Menu, Plus, Search, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/common/theme-toggle";
+import { NotificationsPopover } from "@/components/layout/notifications-popover";
 import { UserMenu } from "@/components/layout/user-menu";
 import { useUIStore, type ViewId } from "@/store/ui-store";
 import { cn } from "@/lib/utils";
@@ -75,14 +76,7 @@ export function Topbar() {
         New
       </Button>
 
-      <button
-        type="button"
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
-        aria-label="Notifications"
-      >
-        <Bell className="h-[1.1rem] w-[1.1rem]" />
-        <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-brand" />
-      </button>
+      <NotificationsPopover />
 
       <ThemeToggle />
       <UserMenu />

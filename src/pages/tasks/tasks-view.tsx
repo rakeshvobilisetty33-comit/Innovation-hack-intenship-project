@@ -243,7 +243,7 @@ export default function TasksView() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-fade-in-up">
       {/* Heading */}
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>

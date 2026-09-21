@@ -109,7 +109,7 @@ export default function Home() {
 
   return (
     <AppShell>
-      <div key={view} className="animate-in fade-in-0 duration-200">
+      <div key={view} className="animate-view-enter">
         <React.Suspense fallback={<ViewLoader />}>
           {activeView}
         </React.Suspense>
