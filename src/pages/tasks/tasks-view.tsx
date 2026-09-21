@@ -178,7 +178,19 @@ export default function TasksView() {
         description: `“${values.title}” has been saved.`,
       });
     } else {
-      addTask(values, values.assignedTo);
+      const proj = projects.find((p) => p.id === values.project);
+      addTask(values, values.assignedTo, proj?.name);
+
+      // Clear any active filter that would hide this newly created task
+      setFilters((prev) => {
+        const next = { ...prev };
+        if (next.status && next.status !== values.status) delete next.status;
+        if (next.project && next.project !== values.project) delete next.project;
+        if (next.priority && next.priority !== values.priority) delete next.priority;
+        if (next.search && !values.title.toLowerCase().includes(next.search.toLowerCase())) delete next.search;
+        return next;
+      });
+
       toast({
         title: "Task created",
         description: `“${values.title}” was added.`,

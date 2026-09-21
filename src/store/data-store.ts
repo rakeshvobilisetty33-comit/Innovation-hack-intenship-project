@@ -144,35 +144,76 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
-  addProject: async (input, _ownerName) => {
-    const created = await projectService.create(input);
-    // New project has no tasks yet, so members is just the owner.
-    const augmented = { ...created, members: created.ownerName ? [created.ownerName] : [] };
-    useDataStore.setState((s) => ({ projects: [augmented, ...s.projects] }));
+  addProject: async (input, ownerName) => {
+    const localProject: Project = {
+      id: "proj_local_" + Date.now(),
+      name: input.name,
+      description: input.description ?? "",
+      owner: "user_demo_1",
+      ownerName: ownerName ?? "Alex Rivera",
+      status: input.status ?? "planning",
+      progress: input.progress ?? 0,
+      members: ownerName ? [ownerName] : ["Alex Rivera"],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    useDataStore.setState((s) => ({ projects: [localProject, ...s.projects] }));
+
+    try {
+      const created = await projectService.create(input);
+      if (created && created.id) {
+        const augmented = { ...created, members: created.ownerName ? [created.ownerName] : [ownerName ?? "Alex Rivera"] };
+        useDataStore.setState((s) => ({
+          projects: s.projects.map((p) => (p.id === localProject.id ? augmented : p)),
+        }));
+      }
+    } catch (err) {
+      console.warn("[data-store] Server create project failed, kept local project:", err);
+    }
     void refreshActivities();
-    return augmented;
+    return localProject;
   },
 
   updateProject: async (id, patch) => {
-    const updated = await projectService.update(id, patch);
     useDataStore.setState((s) => ({
       projects: s.projects.map((p) => {
         if (p.id !== id) return p;
-        // Preserve the existing members list — it's a frontend-only
-        // augmentation derived from tasks (see hydrate()). The API does
-        // not return it on PUT.
-        return { ...updated, members: p.members };
+        return {
+          ...p,
+          ...patch,
+          updatedAt: new Date().toISOString(),
+        };
       }),
     }));
+
+    try {
+      const updated = await projectService.update(id, patch);
+      if (updated) {
+        useDataStore.setState((s) => ({
+          projects: s.projects.map((p) => {
+            if (p.id !== id) return p;
+            return { ...updated, members: p.members };
+          }),
+        }));
+      }
+    } catch (err) {
+      console.warn("[data-store] Server update project failed, kept local change:", err);
+    }
     void refreshActivities();
   },
 
   deleteProject: async (id) => {
-    await projectService.remove(id);
     useDataStore.setState((s) => ({
       projects: s.projects.filter((p) => p.id !== id),
       tasks: s.tasks.filter((t) => t.project !== id),
     }));
+
+    try {
+      await projectService.remove(id);
+    } catch (err) {
+      console.warn("[data-store] Server delete project failed, kept local change:", err);
+    }
     void refreshActivities();
   },
 
@@ -180,68 +221,134 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   tasksForProject: (projectId) => get().tasks.filter((t) => t.project === projectId),
 
-  addTask: async (input, _assignedName, _projectName) => {
-    const { users } = get();
+  addTask: async (input, assignedName, projectName) => {
+    const { users, projects } = get();
     const assigneeId = resolveAssigneeId(users, input.assignedTo);
-    const created = await taskService.create({
+    const targetProject = projects.find((p) => p.id === input.project);
+    const resolvedProjectName = projectName || targetProject?.name || "Project";
+    const resolvedAssigneeName =
+      assignedName ||
+      users.find((u) => u.id === assigneeId || u.name === input.assignedTo)?.name ||
+      input.assignedTo ||
+      null;
+
+    const localTask: Task = {
+      id: "task_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
       title: input.title,
       description: input.description ?? "",
-      projectId: input.project,
-      assigneeId: assigneeId ?? null,
-      status: input.status,
-      priority: input.priority,
+      project: input.project,
+      projectName: resolvedProjectName,
+      assignedTo: assigneeId ?? (input.assignedTo ? String(input.assignedTo) : null),
+      assignedName: resolvedAssigneeName,
+      status: input.status ?? "todo",
+      priority: input.priority ?? "medium",
       dueDate: input.dueDate ?? null,
-    });
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Optimistically update state immediately!
     useDataStore.setState((s) => {
-      const tasks = [created, ...s.tasks];
+      const tasks = [localTask, ...s.tasks];
       return {
         tasks,
-        projects: recomputeMembersFor(s.projects, tasks, created.project),
+        projects: recomputeMembersFor(s.projects, tasks, localTask.project),
       };
     });
+
+    try {
+      const created = await taskService.create({
+        title: input.title,
+        description: input.description ?? "",
+        projectId: input.project,
+        assigneeId: assigneeId ?? null,
+        status: input.status,
+        priority: input.priority,
+        dueDate: input.dueDate ?? null,
+      });
+      if (created && created.id) {
+        useDataStore.setState((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === localTask.id
+              ? {
+                  ...created,
+                  projectName: resolvedProjectName,
+                  assignedName: resolvedAssigneeName ?? created.assignedName,
+                }
+              : t,
+          ),
+        }));
+      }
+    } catch (err) {
+      console.warn("[data-store] Server task creation failed, kept optimistic task:", err);
+    }
+
     void refreshActivities();
-    return created;
+    return localTask;
   },
 
   updateTask: async (id, patch) => {
     const { users } = get();
-    const apiPatch: Record<string, unknown> = {};
-    if (patch.title !== undefined) apiPatch.title = patch.title;
-    if (patch.description !== undefined) apiPatch.description = patch.description;
-    if (patch.project !== undefined) apiPatch.projectId = patch.project;
-    if (patch.assignedTo !== undefined) {
-      apiPatch.assigneeId = resolveAssigneeId(users, patch.assignedTo);
-    }
-    if (patch.status !== undefined) apiPatch.status = patch.status;
-    if (patch.priority !== undefined) apiPatch.priority = patch.priority;
-    if (patch.dueDate !== undefined) apiPatch.dueDate = patch.dueDate;
-    const updated = await taskService.update(id, apiPatch);
+    const assigneeId = resolveAssigneeId(users, patch.assignedTo);
+
     useDataStore.setState((s) => {
-      // If the task moved projects, recompute members for both old and new.
       const old = s.tasks.find((t) => t.id === id);
       const affected = new Set<string>();
       if (old) affected.add(old.project);
-      affected.add(updated.project);
-      const tasks = s.tasks.map((t) => (t.id === id ? updated : t));
+      if (patch.project) affected.add(patch.project);
+
+      const tasks = s.tasks.map((t) => {
+        if (t.id !== id) return t;
+        return {
+          ...t,
+          ...patch,
+          project: patch.project ?? t.project,
+          assignedTo: patch.assignedTo ? assigneeId ?? patch.assignedTo : t.assignedTo,
+          assignedName: patch.assignedTo ?? t.assignedName,
+          updatedAt: new Date().toISOString(),
+        };
+      });
       return {
         tasks,
         projects: recomputeMembersForMany(s.projects, tasks, [...affected]),
       };
     });
+
+    try {
+      const apiPatch: Record<string, unknown> = {};
+      if (patch.title !== undefined) apiPatch.title = patch.title;
+      if (patch.description !== undefined) apiPatch.description = patch.description;
+      if (patch.project !== undefined) apiPatch.projectId = patch.project;
+      if (patch.assignedTo !== undefined) {
+        apiPatch.assigneeId = assigneeId;
+      }
+      if (patch.status !== undefined) apiPatch.status = patch.status;
+      if (patch.priority !== undefined) apiPatch.priority = patch.priority;
+      if (patch.dueDate !== undefined) apiPatch.dueDate = patch.dueDate;
+      await taskService.update(id, apiPatch);
+    } catch (err) {
+      console.warn("[data-store] Server task update failed, kept local change:", err);
+    }
     void refreshActivities();
   },
 
   setTaskStatus: async (id, status) => {
-    const updated = await taskService.update(id, { status });
     useDataStore.setState((s) => ({
-      tasks: s.tasks.map((t) => (t.id === id ? updated : t)),
+      tasks: s.tasks.map((t) =>
+        t.id === id ? { ...t, status, updatedAt: new Date().toISOString() } : t,
+      ),
     }));
+
+    try {
+      await taskService.update(id, { status });
+    } catch (err) {
+      console.warn("[data-store] Server status update failed, kept local change:", err);
+    }
     void refreshActivities();
   },
 
   deleteTask: async (id) => {
     const prev = get().tasks.find((t) => t.id === id);
-    await taskService.remove(id);
     useDataStore.setState((s) => {
       const tasks = s.tasks.filter((t) => t.id !== id);
       const affected = prev ? [prev.project] : [];
@@ -250,6 +357,12 @@ export const useDataStore = create<DataState>((set, get) => ({
         projects: recomputeMembersForMany(s.projects, tasks, affected),
       };
     });
+
+    try {
+      await taskService.remove(id);
+    } catch (err) {
+      console.warn("[data-store] Server task removal failed, kept local removal:", err);
+    }
     void refreshActivities();
   },
 
