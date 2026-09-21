@@ -13,7 +13,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "sticky top-0 hidden h-screen w-[248px] shrink-0 border-r border-sidebar-border bg-sidebar lg:block",
+          "sticky top-0 hidden h-screen w-[248px] shrink-0 border-r border-sidebar-border bg-sidebar lg:block animate-slide-in-right",
         )}
       >
         <Sidebar />

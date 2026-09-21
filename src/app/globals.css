@@ -187,71 +187,127 @@
   .shadow-brand {
     box-shadow: 0 8px 30px -12px color-mix(in oklch, var(--brand) 55%, transparent);
   }
-
-  /* Smooth professional opening animations */
-  @keyframes viewEnter {
-    0% {
-      opacity: 0;
-      transform: translateY(10px) scale(0.995);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes fadeInUp {
-    0% {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes slideInRight {
-    0% {
-      opacity: 0;
-      transform: translateX(-12px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes scaleInSubtle {
-    0% {
-      opacity: 0;
-      transform: scale(0.96);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .animate-view-enter {
-    animation: viewEnter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .animate-fade-in-up {
-    animation: fadeInUp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .animate-slide-in-right {
-    animation: slideInRight 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .animate-scale-in {
-    animation: scaleInSubtle 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
 }
+
+/* ── Global Keyframes (Root Level) ────────────────────────────────── */
+@keyframes viewEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleInSubtle {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+    filter: blur(4px);
+    pointer-events: none;
+  }
+}
+
+@keyframes logoPulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 25px -4px color-mix(in oklch, var(--brand) 60%, transparent);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 45px 4px color-mix(in oklch, var(--brand) 75%, transparent);
+  }
+}
+
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Animation utility classes */
+.animate-view-enter {
+  animation: viewEnter 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fade-in-up {
+  animation: fadeInUp 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-slide-in-right {
+  animation: slideInRight 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-scale-in {
+  animation: scaleInSubtle 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-splash-exit {
+  animation: splashFadeOut 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-logo-pulse {
+  animation: logoPulseGlow 2.4s ease-in-out infinite;
+}
+.animate-progress-shimmer {
+  animation: progressShimmer 1.4s ease-in-out infinite;
+}
+.animate-float {
+  animation: floatGentle 3s ease-in-out infinite;
+}
+
+.stagger-1 { animation-delay: 70ms; }
+.stagger-2 { animation-delay: 140ms; }
+.stagger-3 { animation-delay: 210ms; }
+.stagger-4 { animation-delay: 280ms; }
+.stagger-5 { animation-delay: 350ms; }
 
 /* Recharts tooltip theming */
 .recharts-default-tooltip {

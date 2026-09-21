@@ -51,7 +51,8 @@ export default function ProjectsView() {
   const openProject = useUIStore((s) => s.openProject);
   const { toast } = useToast();
 
-  const [loading, setLoading] = React.useState(true);
+  const hydrated = useDataStore((s) => s.hydrated);
+  const loading = !hydrated;
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<ProjectStatus | "all">(
     "all",
@@ -94,10 +95,7 @@ export default function ProjectsView() {
     }
   };
 
-  React.useEffect(() => {
-    const t = window.setTimeout(() => setLoading(false), 500);
-    return () => window.clearTimeout(t);
-  }, []);
+
 
   // Clear lingering edit project shortly after the dialog closes so the
   // exit animation can play with content still mounted.

@@ -9,6 +9,8 @@ import { useUIStore } from "@/store/ui-store";
 import { Logo } from "@/components/common/logo";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { AppOpeningAnimation } from "@/components/common/app-opening-animation";
+
 // Lazy-load the views so each heavy page (dashboard, tasks with dnd-kit)
 // compiles on demand into its own chunk rather than all at once.
 const LoginView = React.lazy(() => import("@/pages/auth/login-view"));
@@ -40,6 +42,7 @@ export default function Home() {
   const authHydrated = useAuthStore((s) => s.hydrated);
   const view = useUIStore((s) => s.view);
   const [mounted, setMounted] = React.useState(false);
+  const [splashVisible, setSplashVisible] = React.useState(true);
   React.useEffect(() => setMounted(true), []);
 
   // One-shot session hydration on app mount: validate the persisted JWT
@@ -73,16 +76,12 @@ export default function Home() {
   }, [isAuthenticated]);
 
   if (!mounted || !authHydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Logo size={36} />
-      </div>
-    );
+    return <AppOpeningAnimation />;
   }
 
   if (!isAuthenticated) {
     return (
-      <React.Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Logo size={36} /></div>}>
+      <React.Suspense fallback={<AppOpeningAnimation />}>
         <AuthShell />
       </React.Suspense>
     );
@@ -108,12 +107,17 @@ export default function Home() {
   })();
 
   return (
-    <AppShell>
-      <div key={view} className="animate-view-enter">
-        <React.Suspense fallback={<ViewLoader />}>
-          {activeView}
-        </React.Suspense>
-      </div>
-    </AppShell>
+    <>
+      {splashVisible && (
+        <AppOpeningAnimation onFinish={() => setSplashVisible(false)} />
+      )}
+      <AppShell>
+        <div key={view} className="animate-view-enter">
+          <React.Suspense fallback={<ViewLoader />}>
+            {activeView}
+          </React.Suspense>
+        </div>
+      </AppShell>
+    </>
   );
 }

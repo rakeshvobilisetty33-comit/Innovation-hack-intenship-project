@@ -186,11 +186,8 @@ export default function DashboardView() {
   const setView = useUIStore((s) => s.setView);
   const { toast } = useToast();
 
-  const [loading, setLoading] = React.useState(true);
-  React.useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(t);
-  }, []);
+  const hydrated = useDataStore((s) => s.hydrated);
+  const loading = !hydrated;
 
   const firstName = (user?.name ?? "there").split(" ")[0];
   const today = new Date().toLocaleDateString(undefined, {
