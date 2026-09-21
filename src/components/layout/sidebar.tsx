@@ -82,25 +82,6 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
-
-      <div className="mt-auto px-1">
-        <div className="rounded-xl border border-sidebar-border bg-gradient-to-br from-brand/10 to-transparent p-3">
-          <p className="text-xs font-semibold">AI task generator</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-            Describe a project and let AI break it into tasks.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setView("projects");
-              onNavigate?.();
-            }}
-            className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand"
-          >
-            Try from a project →
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
