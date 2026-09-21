@@ -39,7 +39,8 @@ export const authService = {
       const msg = errMsg(e, "Registration failed");
       // Resilient fallback for serverless demo mode
       if (msg.includes("server error") || msg.includes("try again") || msg.includes("Failed") || msg.includes("Registration failed")) {
-        const fallbackId = "user_" + Date.now();
+        const safeKey = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
+        const fallbackId = "user_" + safeKey;
         const fallbackUser: User = {
           id: fallbackId,
           name,
@@ -50,7 +51,7 @@ export const authService = {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        const token = "demo-jwt-token-" + Date.now();
+        const token = "demo-jwt-token-" + safeKey + "-" + Date.now();
         setToken(token);
         if (typeof window !== "undefined") {
           window.localStorage.setItem("devflow.fallback_user", JSON.stringify(fallbackUser));
@@ -73,10 +74,12 @@ export const authService = {
       const msg = errMsg(e, "Invalid email or password");
       // Resilient fallback for serverless demo mode
       if (msg.includes("server error") || msg.includes("try again")) {
-        const fallbackId = "user_demo_1";
+        const safeKey = email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
+        const isDemo = email.toLowerCase() === "alex.rivera@example.com";
+        const fallbackId = isDemo ? "user_demo_1" : "user_" + safeKey;
         const fallbackUser: User = {
           id: fallbackId,
-          name: email.split("@")[0] || "Alex Rivera",
+          name: email.split("@")[0] || "User",
           email,
           role: "Software Engineer",
           avatar: null,
@@ -84,7 +87,7 @@ export const authService = {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        const token = "demo-jwt-token-" + Date.now();
+        const token = "demo-jwt-token-" + safeKey + "-" + Date.now();
         setToken(token);
         if (typeof window !== "undefined") {
           window.localStorage.setItem("devflow.fallback_user", JSON.stringify(fallbackUser));

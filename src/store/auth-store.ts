@@ -5,7 +5,8 @@ import { persist } from "zustand/middleware";
 import type { User } from "@/lib/types";
 import { authService } from "@/services/authService";
 import { getToken, setToken } from "@/services/api";
-import { useDataStore } from "@/store/data-store";
+import { useDataStore, saveUserWorkspace } from "@/store/data-store";
+import { useNotificationStore } from "@/store/notification-store";
 
 // Phase 6 — real JWT auth backed by the REST API. The store API stays stable
 // (same `user`, `token`, `isAuthenticated`, `status`, `error`, `login`,
@@ -43,9 +44,9 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { token, user } = await authService.login(email, password);
           setToken(token);
-          // Reset the workspace cache so hydrate() pulls fresh data for the
-          // (potentially different) user — guards against cross-user data
-          // leakage when switching accounts without a full page reload.
+          // Clear notification feed from previous sessions
+          useNotificationStore.getState().clearAll();
+          // Reset the workspace cache so hydrate() pulls fresh data for this user
           useDataStore.setState({
             projects: [],
             tasks: [],
@@ -62,6 +63,8 @@ export const useAuthStore = create<AuthState>()(
             status: "authenticated",
             error: null,
           });
+          // Immediately hydrate isolated workspace for this logged-in user
+          void useDataStore.getState().hydrate(true);
           return { ok: true };
         } catch (e) {
           const message = e instanceof Error ? e.message : "Sign in failed.";
@@ -75,14 +78,22 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { token, user } = await authService.register(name, email, password);
           setToken(token);
+          // Newly registered accounts are guaranteed to start 100% empty
+          saveUserWorkspace({ projects: [], tasks: [], activities: [] }, user);
           useDataStore.setState({
             projects: [],
             tasks: [],
             activities: [],
             users: [],
-            hydrated: false,
+            hydrated: true,
             loading: false,
             error: null,
+          });
+          useNotificationStore.getState().clearAll();
+          useNotificationStore.getState().addNotification({
+            title: "Welcome to DevFlow AI",
+            message: `Account created successfully. Welcome, ${name}! Your workspace is ready.`,
+            type: "success",
           });
           set({
             user,
@@ -111,7 +122,8 @@ export const useAuthStore = create<AuthState>()(
           error: null,
         });
         setToken(null);
-        // Wipe the cached workspace so the next login starts fresh.
+        // Wipe the cached workspace and notifications so the next login starts fresh.
+        useNotificationStore.getState().clearAll();
         useDataStore.setState({
           projects: [],
           tasks: [],

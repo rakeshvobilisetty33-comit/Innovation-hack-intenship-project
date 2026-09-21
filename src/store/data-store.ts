@@ -56,7 +56,7 @@ interface DataState {
   error: string | null;
 
   // Hydrate everything from the API in parallel.
-  hydrate: () => Promise<void>;
+  hydrate: (force?: boolean) => Promise<void>;
 
   // Projects
   addProject: (input: ProjectInput, ownerName?: string) => Promise<Project>;
@@ -95,16 +95,18 @@ function resolveAssigneeId(users: User[], assignedTo?: string): string | null {
   return null;
 }
 
-function getActiveUser(): { id: string; name: string } {
+export function getActiveUser(): { id: string; name: string; email: string } {
   if (typeof window !== "undefined") {
     try {
       const raw = localStorage.getItem("devflow-auth");
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed?.state?.user) {
+        if (parsed?.state?.isAuthenticated && parsed?.state?.user) {
+          const u = parsed.state.user;
           return {
-            id: parsed.state.user.id || "user_demo_1",
-            name: parsed.state.user.name || "Alex Rivera",
+            id: u.id || u._id || (u.email ? "user_" + u.email.replace(/[^a-zA-Z0-9]/g, "_") : "guest"),
+            name: u.name || "User",
+            email: u.email || "",
           };
         }
       }
@@ -112,7 +114,56 @@ function getActiveUser(): { id: string; name: string } {
       // ignore
     }
   }
-  return { id: "user_demo_1", name: "Alex Rivera" };
+  return { id: "guest", name: "Guest User", email: "" };
+}
+
+export function isDemoUser(user: { id: string; name?: string; email?: string }): boolean {
+  return (
+    user.id === "user_demo_1" ||
+    user.email?.toLowerCase() === "alex.rivera@example.com"
+  );
+}
+
+export function getUserWorkspaceKey(user?: { id?: string; email?: string } | null): string {
+  const active = user || getActiveUser();
+  const rawKey = (active.email ? active.email.toLowerCase() : "") || active.id || "guest";
+  return `devflow_workspace_${rawKey.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+}
+
+export function loadUserWorkspace(user?: { id?: string; email?: string } | null): {
+  projects?: Project[];
+  tasks?: Task[];
+  activities?: Activity[];
+} | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const key = getUserWorkspaceKey(user);
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function saveUserWorkspace(
+  data: { projects: Project[]; tasks: Task[]; activities: Activity[] },
+  user?: { id?: string; email?: string } | null,
+) {
+  if (typeof window === "undefined") return;
+  try {
+    const key = getUserWorkspaceKey(user);
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // ignore
+  }
+}
+
+export function persistCurrentWorkspace() {
+  const { projects, tasks, activities } = useDataStore.getState();
+  saveUserWorkspace({ projects, tasks, activities });
 }
 
 export const useDataStore = create<DataState>((set, get) => ({
@@ -124,25 +175,62 @@ export const useDataStore = create<DataState>((set, get) => ({
   loading: false,
   error: null,
 
-  hydrate: async () => {
-    if (get().hydrated || get().loading) return;
+  hydrate: async (force?: boolean) => {
+    if (!force && (get().hydrated || get().loading)) return;
     set({ loading: true, error: null });
+    const activeUser = getActiveUser();
+    const isDemo = isDemoUser(activeUser);
+
     try {
-      const [projects, tasks, activities, users] = await Promise.all([
-        projectService.list(),
-        taskService.list(),
-        activityService.list({ limit: 30 }),
+      const [apiProjects, apiTasks, apiActivities, users] = await Promise.all([
+        projectService.list().catch(() => null),
+        taskService.list().catch(() => null),
+        activityService.list({ limit: 30 }).catch(() => null),
         userService.list().catch(() => [] as User[]),
       ]);
-      const finalProjects = projects.length > 0 ? projects : fallbackProjects;
-      const finalTasks = tasks.length > 0 ? tasks : fallbackTasks;
-      const finalActivities = activities.length > 0 ? activities : fallbackActivities;
+
+      const cached = loadUserWorkspace(activeUser);
+
+      // Projects: use server results if available, otherwise check isolated user cache
+      let finalProjects: Project[] = [];
+      if (apiProjects !== null) {
+        finalProjects = apiProjects;
+      } else if (cached?.projects) {
+        finalProjects = cached.projects;
+      }
+
+      // Tasks: use server results if available, otherwise check isolated user cache
+      let finalTasks: Task[] = [];
+      if (apiTasks !== null) {
+        finalTasks = apiTasks;
+      } else if (cached?.tasks) {
+        finalTasks = cached.tasks;
+      }
+
+      // Activities: use server results if available, otherwise check isolated user cache
+      let finalActivities: Activity[] = [];
+      if (apiActivities !== null) {
+        finalActivities = apiActivities;
+      } else if (cached?.activities) {
+        finalActivities = cached.activities;
+      }
+
+      // STRICT ISOLATION: Only the explicit demo account (alex.rivera@example.com)
+      // receives fallback mock data if completely empty.
+      // Every other newly created account will be completely empty (0 projects, 0 tasks)!
+      if (isDemo && finalProjects.length === 0 && finalTasks.length === 0) {
+        finalProjects = fallbackProjects;
+        finalTasks = fallbackTasks;
+        finalActivities = fallbackActivities;
+      }
+
       const finalUsers = users.length > 0 ? users : fallbackUsers;
 
       const withMembers = finalProjects.map((p) => ({
         ...p,
         members: computeMembersFromTasks(p, finalTasks),
       }));
+
       set({
         projects: withMembers,
         tasks: finalTasks,
@@ -152,16 +240,45 @@ export const useDataStore = create<DataState>((set, get) => ({
         loading: false,
         error: null,
       });
-    } catch (e) {
+
+      // Persist to user-isolated storage
+      saveUserWorkspace(
+        {
+          projects: withMembers,
+          tasks: finalTasks,
+          activities: finalActivities,
+        },
+        activeUser,
+      );
+    } catch {
+      const cached = loadUserWorkspace(activeUser);
+      const finalProjects = cached?.projects ?? (isDemo ? fallbackProjects : []);
+      const finalTasks = cached?.tasks ?? (isDemo ? fallbackTasks : []);
+      const finalActivities = cached?.activities ?? (isDemo ? fallbackActivities : []);
+
+      const withMembers = finalProjects.map((p) => ({
+        ...p,
+        members: computeMembersFromTasks(p, finalTasks),
+      }));
+
       set({
-        projects: fallbackProjects,
-        tasks: fallbackTasks,
-        activities: fallbackActivities,
+        projects: withMembers,
+        tasks: finalTasks,
+        activities: finalActivities,
         users: fallbackUsers,
         loading: false,
         error: null,
         hydrated: true,
       });
+
+      saveUserWorkspace(
+        {
+          projects: withMembers,
+          tasks: finalTasks,
+          activities: finalActivities,
+        },
+        activeUser,
+      );
     }
   },
 
@@ -197,6 +314,7 @@ export const useDataStore = create<DataState>((set, get) => ({
       projects: [localProject, ...s.projects],
       activities: [newAct, ...s.activities],
     }));
+    persistCurrentWorkspace();
 
     try {
       useNotificationStore.getState().addNotification({
@@ -220,6 +338,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         useDataStore.setState((s) => ({
           projects: s.projects.map((p) => (p.id === localProject.id ? augmented : p)),
         }));
+        persistCurrentWorkspace();
       }
     } catch (err) {
       console.warn("[data-store] Server create project failed, kept local project:", err);
@@ -259,6 +378,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         activities: [newAct, ...s.activities],
       };
     });
+    persistCurrentWorkspace();
 
     try {
       const updated = await projectService.update(id, patch);
@@ -269,6 +389,7 @@ export const useDataStore = create<DataState>((set, get) => ({
             return { ...updated, members: p.members };
           }),
         }));
+        persistCurrentWorkspace();
       }
     } catch (err) {
       console.warn("[data-store] Server update project failed, kept local change:", err);
@@ -298,6 +419,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         activities: [newAct, ...s.activities],
       };
     });
+    persistCurrentWorkspace();
 
     try {
       await projectService.remove(id);
@@ -358,6 +480,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         projects: recomputeMembersFor(s.projects, tasks, localTask.project),
       };
     });
+    persistCurrentWorkspace();
 
     try {
       useNotificationStore.getState().addNotification({
@@ -393,6 +516,7 @@ export const useDataStore = create<DataState>((set, get) => ({
               : t,
           ),
         }));
+        persistCurrentWorkspace();
       }
     } catch (err) {
       console.warn("[data-store] Server task creation failed, kept optimistic task:", err);
@@ -468,6 +592,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         projects: recomputeMembersForMany(s.projects, tasks, [...affected]),
       };
     });
+    persistCurrentWorkspace();
 
     try {
       useNotificationStore.getState().addNotification({
@@ -529,6 +654,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         activities: [act, ...s.activities],
       };
     });
+    persistCurrentWorkspace();
 
     try {
       useNotificationStore.getState().addNotification({
@@ -575,6 +701,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         projects: recomputeMembersForMany(s.projects, tasks, affected),
       };
     });
+    persistCurrentWorkspace();
 
     try {
       await taskService.remove(id);
@@ -629,6 +756,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     useDataStore.setState((s) => ({
       activities: [newAct, ...s.activities].slice(0, 40),
     }));
+    persistCurrentWorkspace();
   },
 }));
 
@@ -655,6 +783,7 @@ async function refreshActivities() {
         );
         return { activities: unique.slice(0, 40) };
       });
+      persistCurrentWorkspace();
     }
   } catch {
     // ignore — background refresh
